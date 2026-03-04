@@ -76,17 +76,60 @@
     </div>
 </div>
 
-<div id="edit-modal" class="modal">
+<div id="edit-modal" class="modal" style="display:none;">
     <div class="modal-content">
         <h3>Editar Producto</h3>
-        <div class="form-group"><label>Título</label><input type="text" id="edit-nombre"></div>
-        <div class="grid">
-            <div class="form-group"><label>Categoría</label><input type="text" id="edit-cat"></div>
-            <div class="form-group"><label>Stock</label><input type="number" id="edit-stock"></div>
+        
+        <div class="form-group">
+            <label>Título</label>
+            <input type="text" id="edit-nombre">
         </div>
-        <div class="form-group"><label>Foto Nueva (Opcional)</label><input type="file" id="edit-foto"></div>
+
+        <div class="grid">
+            <div class="form-group">
+                <label>Categoría</label>
+                <select id="edit-cat" onchange="cargarSubcategoriasEdicion()">
+                    <option value="">Seleccione Categoría</option>
+                    <option value="elec_domiciliaria">Electricidad Domiciliaria</option>
+                    <option value="elec_industrial">Electricidad Industrial</option>
+                    <option value="herramientas">Herramientas (Total/Manuales)</option>
+                    <option value="ferreteria_industrial">Ferretería Industrial</option>
+                    <option value="gasfiteria_electrica">Gasfitería Eléctrica</option>
+                    <option value="gasfiteria_general">Gasfitería General</option>
+                    <option value="epp">EPP (Protección Personal)</option>
+                    <option value="seguridad_vigilancia">Seguridad y Vigilancia</option>
+                    <option value="automatizacion_control">Automatización y Control</option>
+                    <option value="iluminacion">Iluminación LED</option>
+                    <option value="ernc_riego">ERNC - Riego</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Sub-Categoría</label>
+                <select id="edit-subcat">
+                    <option value="">Seleccione Sub-Categoría</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="form-group">
+                <label>Stock Actual</label>
+                <input type="number" id="edit-stock">
+            </div>
+            <div class="form-group">
+                <label>Foto Nueva (Opcional)</label>
+                <input type="file" id="edit-foto" accept="image/*">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Descripción Técnica</label>
+            <textarea id="edit-desc"></textarea>
+        </div>
+
         <button class="btn-main" onclick="saveEdit()">Actualizar Datos</button>
-        <button onclick="closeModal()" style="background:none; border:none; width:100%; margin-top:10px; cursor:pointer;">Cancelar</button>
+        <button onclick="closeModal()" style="background:none; border:none; width:100%; margin-top:10px; cursor:pointer; color: #666;">Cancelar</button>
     </div>
 </div>
 
