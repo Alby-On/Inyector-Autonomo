@@ -27,66 +27,54 @@
                     <label>Título del Producto</label>
                     <input type="text" id="nombre" placeholder="Nombre completo del equipo" required>
                 </div>
+
                 <div class="grid">
                     <div class="form-group">
                         <label>Categoría</label>
-                        <div class="grid">
-    <div class="form-group">
-        <label>Categoría</label>
-        <select id="cat" required onchange="cargarSubcategorias()">
-            <option value="">Seleccione Categoría</option>
-            <option value="elec_domiciliaria">Electricidad Domiciliaria</option>
-            <option value="elec_industrial">Electricidad Industrial</option>
-            <option value="herramientas">Herramientas (Total/Manuales)</option>
-            <option value="ferreteria_industrial">Ferretería Industrial</option>
-            <option value="gasfiteria_electrica">Gasfitería Eléctrica</option>
-            <option value="gasfiteria_general">Gasfitería General</option>
-            <option value="epp">EPP (Protección Personal)</option>
-            <option value="seguridad_vigilancia">Seguridad y Vigilancia</option>
-            <option value="automatizacion_control">Automatización y Control</option>
-            <option value="iluminacion">Iluminación LED</option>
-            <option value="ernc_riego">ERNC - Riego</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Sub-Categoría</label>
-        <select id="subcat" required disabled>
-            <option value="">Seleccione Sub-Categoría</option>
-        </select>
-    </div>
-</div>
-
-<div class="form-group">
-    <label>Sub-Categoría Específica</label>
-    <select id="subcat" required disabled>
-        <option value="">Primero elija categoría</option>
-    </select>
-</div>
+                        <select id="cat" required onchange="cargarSubcategorias()">
+                            <option value="">Seleccione Categoría</option>
+                            <option value="elec_domiciliaria">Electricidad Domiciliaria</option>
+                            <option value="elec_industrial">Electricidad Industrial</option>
+                            <option value="herramientas">Herramientas (Total/Manuales)</option>
+                            <option value="ferreteria_industrial">Ferretería Industrial</option>
+                            <option value="gasfiteria_electrica">Gasfitería Eléctrica</option>
+                            <option value="gasfiteria_general">Gasfitería General</option>
+                            <option value="epp">EPP (Protección Personal)</option>
+                            <option value="seguridad_vigilancia">Seguridad y Vigilancia</option>
+                            <option value="automatizacion_control">Automatización y Control</option>
+                            <option value="iluminacion">Iluminación LED</option>
+                            <option value="ernc_riego">ERNC - Riego</option>
+                        </select>
                     </div>
+
                     <div class="form-group">
                         <label>Sub-Categoría</label>
                         <select id="subcat" required disabled>
                             <option value="">Primero elija categoría</option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Stock</label>
                         <input type="number" id="stock" value="0">
                     </div>
+
                     <div class="form-group">
                         <label>Imagen del Producto</label>
                         <input type="file" id="foto" accept="image/*" required>
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label>Descripción Técnica</label>
                     <textarea id="desc" placeholder="Especificaciones, dimensiones, etc."></textarea>
                 </div>
+
                 <button type="submit" class="btn-main">Inyectar Producto</button>
             </form>
         </div>
     </div>
-    </div>
+</div>
 
 <div id="edit-modal" class="modal">
     <div class="modal-content">
