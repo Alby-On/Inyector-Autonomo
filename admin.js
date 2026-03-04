@@ -57,27 +57,25 @@ function saveEdit() {
     };
 
     function cargarSubcategorias() {
-        const catSelect = document.getElementById("cat");
-        const subcatSelect = document.getElementById("subcat");
-        const categoriaSeleccionada = catSelect.value;
+    const catSelect = document.getElementById("cat");
+    const subcatSelect = document.getElementById("subcat");
+    const categoriaSeleccionada = catSelect.value;
 
-        // Limpiar subcategorías previas
-        subcatSelect.innerHTML = '<option value="">Seleccione Sub-categoría</option>';
+    // Limpiar subcategorías previas
+    subcatSelect.innerHTML = '<option value="">Seleccione Sub-categoría</option>';
 
-        if (categoriaSeleccionada && datosMakro[categoriaSeleccionada]) {
-            // Habilitar el select de subcategorías
-            subcatSelect.disabled = false;
+    if (categoriaSeleccionada && datosMakro[categoriaSeleccionada]) {
+        subcatSelect.disabled = false;
 
-            // Llenar con las nuevas opciones
-            datosMakro[categoriaSeleccionada].forEach(sub => {
-                const option = document.createElement("option");
-                option.value = sub.toLowerCase().replace(/ /g, "_"); // Valor formateado
-                option.textContent = sub; // Texto visible
-                subcatSelect.appendChild(option);
-            });
-        } else {
-            // Si no hay selección, deshabilitar
-            subcatSelect.disabled = true;
-            subcatSelect.innerHTML = '<option value="">Primero elija categoría</option>';
-        }
+        datosMakro[categoriaSeleccionada].forEach(sub => {
+            const option = document.createElement("option");
+            // El valor será el nombre en minúsculas y sin espacios
+            option.value = sub.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
+            option.textContent = sub;
+            subcatSelect.appendChild(option);
+        });
+    } else {
+        subcatSelect.disabled = true;
+        subcatSelect.innerHTML = '<option value="">Primero elija categoría</option>';
     }
+}
