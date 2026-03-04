@@ -46,7 +46,6 @@ function saveEdit() {
     console.log("Datos actualizados localmente");
     closeModal();
 }
-<script>
     const datosMakro = {
         "electricidad": ["Conductores", "Canalización", "Artefactos", "Tableros y Armarios", "Accesorios de Conexión"],
         "protecciones": ["Protecciones Eléctricas", "Componentes de Maniobra", "Control de Motores", "Comandos"],
@@ -82,4 +81,3 @@ function saveEdit() {
             subcatSelect.innerHTML = '<option value="">Primero elija categoría</option>';
         }
     }
-</script>
