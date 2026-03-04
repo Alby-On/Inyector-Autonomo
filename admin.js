@@ -46,3 +46,40 @@ function saveEdit() {
     console.log("Datos actualizados localmente");
     closeModal();
 }
+<script>
+    const datosMakro = {
+        "electricidad": ["Conductores", "Canalización", "Artefactos", "Tableros y Armarios", "Accesorios de Conexión"],
+        "protecciones": ["Protecciones Eléctricas", "Componentes de Maniobra", "Control de Motores", "Comandos"],
+        "automatizacion": ["Automatización", "Instrumentación", "Domótica"],
+        "iluminacion": ["Interior", "Exterior", "Emergencia"],
+        "ferreteria": ["Herramientas Eléctricas (Total)", "Herramientas Manuales", "Gasfitería Eléctrica"],
+        "seguridad": ["Protección Corporal", "Protección de Extremidades", "Protección Facial", "Vigilancia"],
+        "conectividad": ["Redes", "ERNC y Riego"]
+    };
+
+    function cargarSubcategorias() {
+        const catSelect = document.getElementById("cat");
+        const subcatSelect = document.getElementById("subcat");
+        const categoriaSeleccionada = catSelect.value;
+
+        // Limpiar subcategorías previas
+        subcatSelect.innerHTML = '<option value="">Seleccione Sub-categoría</option>';
+
+        if (categoriaSeleccionada && datosMakro[categoriaSeleccionada]) {
+            // Habilitar el select de subcategorías
+            subcatSelect.disabled = false;
+
+            // Llenar con las nuevas opciones
+            datosMakro[categoriaSeleccionada].forEach(sub => {
+                const option = document.createElement("option");
+                option.value = sub.toLowerCase().replace(/ /g, "_"); // Valor formateado
+                option.textContent = sub; // Texto visible
+                subcatSelect.appendChild(option);
+            });
+        } else {
+            // Si no hay selección, deshabilitar
+            subcatSelect.disabled = true;
+            subcatSelect.innerHTML = '<option value="">Primero elija categoría</option>';
+        }
+    }
+</script>
