@@ -3,127 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Albyon Digital</title>
+    <title>Gestor Makro SPA</title>
     <style>
-        :root { --primary: #2563eb; --danger: #ef4444; --success: #22c55e; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--text); }
+        /* Variables y Reset */
+        :root {
+            --primary: #1e40af;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; margin: 0; color: var(--dark); }
+
+        /* Navbar Corporativa */
+        .navbar { background: white; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .nav-header { background: var(--dark); padding: 15px; text-align: center; }
+        .nav-header h1 { color: white; margin: 0; font-size: 1.3rem; font-weight: 500; }
+        .nav-actions { display: flex; justify-content: center; gap: 10px; padding: 12px; background: white; }
         
-        /* Navbar */
-        .navbar { background: white; padding: 1rem 2rem; display: flex; gap: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .nav-btn { padding: 10px 20px; border: none; background: transparent; cursor: pointer; font-weight: 600; color: var(--text); border-radius: 6px; transition: 0.3s; }
+        .nav-btn { 
+            padding: 10px 20px; border: 2px solid transparent; background: transparent; cursor: pointer; 
+            font-weight: 600; border-radius: 8px; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+        }
         .nav-btn.active { background: var(--primary); color: white; }
-        .nav-btn:hover:not(.active) { background: #e2e8f0; }
+        .nav-btn:hover:not(.active) { background: var(--light); color: var(--primary); }
 
-        .content { padding: 30px; max-width: 1200px; margin: auto; }
-        .view { display: none; }
+        /* Contenedores de Vistas */
+        .content { padding: 30px; max-width: 1000px; margin: auto; }
+        .view { display: none; animation: fadeIn 0.3s ease; }
         .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Estilos de Tabla */
-        .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
+        /* Formulario de Inyección */
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full { grid-column: span 2; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        textarea { resize: vertical; min-height: 100px; }
+        
+        .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
+        .btn-main:hover { opacity: 0.9; }
+
+        /* Tabla de Inventario */
+        .table-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-        th { background: #f8fafc; font-size: 0.8rem; text-transform: uppercase; color: #64748b; }
-        .thumb-td { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
+        .thumb { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; }
+        
+        .action-edit { color: var(--primary); cursor: pointer; font-weight: 600; margin-right: 15px; }
+        .action-delete { color: var(--danger); cursor: pointer; font-weight: 600; }
+
+        /* Buscador */
+        .search-box { margin-bottom: 20px; width: 100%; max-width: 300px; }
 
         /* Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
-        
-        /* Formularios */
-        .grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .full-width { grid-column: span 2; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
-        
-        .btn-save { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; margin-top: 10px; }
-        .btn-edit { color: var(--primary); cursor: pointer; font-weight: 600; margin-right: 15px; }
-        .btn-delete { color: var(--danger); cursor: pointer; font-weight: 600; }
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 2000; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; }
     </style>
 </head>
 <body>
 
 <nav class="navbar">
-    <button class="nav-btn active" onclick="showView('add-view', this)">Agregar Equipo</button>
-    <button class="nav-btn" onclick="showView('list-view', this)">Listar e Inventario</button>
+    <div class="nav-header">
+        <h1>Gestor de Productos Comercializadora Makro SPA</h1>
+    </div>
+    <div class="nav-actions">
+        <button class="nav-btn active" onclick="showView('add-view', this)">✚ Agregar producto</button>
+        <button class="nav-btn" onclick="showView('list-view', this)">📋 Listar e Inventario</button>
+    </div>
 </nav>
 
 <div class="content">
+    
     <div id="add-view" class="view active">
+        <div class="card">
+            <h2>Detalles del Nuevo Equipo</h2>
+            <form id="add-form">
+                <div class="form-group">
+                    <label>Título del Producto</label>
+                    <input type="text" id="nombre" placeholder="Nombre completo del equipo" required>
+                </div>
+                <div class="grid">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <input type="text" id="cat" placeholder="Ej: Herramientas" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Sub-Categoría</label>
+                        <input type="text" id="subcat" placeholder="Ej: Eléctricas">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock</label>
+                        <input type="number" id="stock" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Imagen del Producto</label>
+                        <input type="file" id="foto" accept="image/*" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Descripción Técnica</label>
+                    <textarea id="desc" placeholder="Especificaciones, dimensiones, etc."></textarea>
+                </div>
+                <button type="submit" class="btn-main">Inyectar Producto</button>
+            </form>
         </div>
+    </div>
 
     <div id="list-view" class="view">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Gestión de Equipos</h2>
-            <input type="text" id="search" placeholder="Buscar equipo..." onkeyup="filterTable()" style="width: 250px;">
-        </div>
-        
+        <input type="text" class="search-box" id="search" placeholder="🔍 Buscar producto..." onkeyup="filterTable()">
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Foto</th>
                         <th>Producto</th>
-                        <th>Categoría / Sub</th>
+                        <th>Categoría</th>
                         <th>Stock</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="main-table-body">
-                    <tr>
-                        <td><img src="https://via.placeholder.com/100" class="thumb-td"></td>
-                        <td><b>Motor Trifásico 5HP</b></td>
-                        <td>Maquinaria / Motores</td>
-                        <td>12</td>
-                        <td>
-                            <span class="btn-edit" onclick="openEditModal('ID_DE_PRUEBA')">Editar</span>
-                            <span class="btn-delete" onclick="handleDelete('ID_DE_PRUEBA')">Eliminar</span>
-                        </td>
-                    </tr>
-                </tbody>
+                <tbody id="inventory-body">
+                    </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<div id="editModal" class="modal">
+<div id="edit-modal" class="modal">
     <div class="modal-content">
-        <h2 style="margin-top:0">Editar Producto</h2>
-        <form id="edit-form">
-            <div class="form-group">
-                <label>Título del Producto</label>
-                <input type="text" id="edit-nombre" required>
-            </div>
-
-            <div class="grid-form">
-                <div class="form-group">
-                    <label>Categoría</label>
-                    <input type="text" id="edit-categoria" required>
-                </div>
-                <div class="form-group">
-                    <label>Sub-Categoría</label>
-                    <input type="text" id="edit-subcategoria">
-                </div>
-                <div class="form-group">
-                    <label>Stock Actual</label>
-                    <input type="number" id="edit-stock" min="0">
-                </div>
-                <div class="form-group">
-                    <label>Cambiar Foto (Opcional)</label>
-                    <input type="file" id="edit-foto" accept="image/*">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Descripción Técnica</label>
-                <textarea id="edit-descripcion" rows="4"></textarea>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <button type="submit" class="btn-save">Guardar Cambios</button>
-                <button type="button" onclick="closeModal()" style="background:#e2e8f0; border:none; padding:12px; border-radius:8px; cursor:pointer; flex: 0.5;">Cancelar</button>
-            </div>
-        </form>
+        <h3>Editar Producto</h3>
+        <div class="form-group"><label>Título</label><input type="text" id="edit-nombre"></div>
+        <div class="grid">
+            <div class="form-group"><label>Categoría</label><input type="text" id="edit-cat"></div>
+            <div class="form-group"><label>Stock</label><input type="number" id="edit-stock"></div>
+        </div>
+        <div class="form-group"><label>Foto Nueva (Opcional)</label><input type="file" id="edit-foto"></div>
+        <button class="btn-main" onclick="saveEdit()">Actualizar Datos</button>
+        <button onclick="closeModal()" style="background:none; border:none; width:100%; margin-top:10px; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
@@ -136,39 +156,17 @@
         btn.classList.add('active');
     }
 
-    // Modal de Edición - Lógica de Apertura
-    function openEditModal(productId) {
-        // Aquí harías un fetch a Supabase con el ID para traer la data actual
-        // Por ahora, simulamos que cargamos los datos en los inputs:
-        document.getElementById('edit-nombre').value = "Motor Trifásico 5HP";
-        document.getElementById('edit-categoria').value = "Maquinaria";
-        document.getElementById('edit-subcategoria').value = "Motores";
-        document.getElementById('edit-stock').value = 12;
-        document.getElementById('edit-descripcion').value = "Ficha técnica de ejemplo...";
-        
-        document.getElementById('editModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('editModal').style.display = 'none';
-    }
-
     // Buscador
     function filterTable() {
-        const query = document.getElementById('search').value.toLowerCase();
-        const rows = document.querySelectorAll('#main-table-body tr');
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
-        });
-    }
-
-    // Confirmar Eliminación
-    function handleDelete(id) {
-        if(confirm("¿Estás seguro de que deseas eliminar este equipo? Esta acción no se puede deshacer.")) {
-            // Lógica para supabase.from('productos').delete().eq('id', id)
-            console.log("Eliminando producto:", id);
+        let input = document.getElementById("search").value.toLowerCase();
+        let rows = document.getElementById("inventory-body").getElementsByTagName("tr");
+        for (let row of rows) {
+            row.style.display = row.textContent.toLowerCase().includes(input) ? "" : "none";
         }
     }
+
+    function openEditModal() { document.getElementById('edit-modal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('edit-modal').style.display = 'none'; }
 </script>
 
 </body>
