@@ -47,14 +47,51 @@ function saveEdit() {
     closeModal();
 }
     const datosMakro = {
-        "electricidad": ["Conductores", "Canalización", "Artefactos", "Tableros y Armarios", "Accesorios de Conexión"],
-        "protecciones": ["Protecciones Eléctricas", "Componentes de Maniobra", "Control de Motores", "Comandos"],
-        "automatizacion": ["Automatización", "Instrumentación", "Domótica"],
-        "iluminacion": ["Interior", "Exterior", "Emergencia"],
-        "ferreteria": ["Herramientas Eléctricas (Total)", "Herramientas Manuales", "Gasfitería Eléctrica"],
-        "seguridad": ["Protección Corporal", "Protección de Extremidades", "Protección Facial", "Vigilancia"],
-        "conectividad": ["Redes", "ERNC y Riego"]
-    };
+    "elec_domiciliaria": [
+        "Conductores (Cables/Cordones)", 
+        "Canalización (PVC/Canaletas)", 
+        "Artefactos (Enchufes/Interruptores)", 
+        "Protecciones (Automáticos/Diferenciales)",
+        "Accesorios (Cajas/Terminales)"
+    ],
+    "elec_industrial": [
+        "Tableros y Gabinetes Metálicos", 
+        "Control de Motores (Guardamotores)", 
+        "Maniobra (Contactores/Relés)", 
+        "Comandos (Pulsadores/Paradas)", 
+        "Canalización Galvanizada/Bandejas"
+    ],
+    "automatizacion_control": [
+        "Instrumentación (Medidores/Tester)", 
+        "Domótica", 
+        "PLCs y Sensores"
+    ],
+    "iluminacion": [
+        "Focos LED Interior", 
+        "Focos LED Exterior", 
+        "Iluminación de Emergencia"
+    ],
+    "ferreteria_herramientas": [
+        "Herramientas Eléctricas (Total)", 
+        "Herramientas Manuales", 
+        "Gasfitería Eléctrica (Duchas/Llaves)"
+    ],
+    "epp": [
+        "Protección Corporal (Chaquetas/Chalecos)", 
+        "Calzado de Seguridad", 
+        "Protección de Manos (Guantes)", 
+        "Protección de Cabeza y Rostro (Cascos/Antiparras)"
+    ],
+    "seguridad_vigilancia": [
+        "Cámaras CCTV", 
+        "Sistemas de Alarma", 
+        "Conectividad y Redes"
+    ],
+    "ernc_riego": [
+        "Energía Solar (Paneles/Inversores)", 
+        "Sistemas de Riego Tecnificado"
+    ]
+};
 
     function cargarSubcategorias() {
     const catSelect = document.getElementById("cat");
