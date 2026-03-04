@@ -82,3 +82,53 @@ function saveEdit() {
         subcatSelect.disabled = true;
     }
 }
+// Variable global para saber qué producto estamos editando
+let editIndex = null;
+
+// 1. Función para cargar subcategorías DENTRO del modal
+function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
+    const catSelect = document.getElementById("edit-cat");
+    const subcatSelect = document.getElementById("edit-subcat");
+    const seleccion = catSelect.value;
+
+    subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
+
+    if (seleccion && datosMakro[seleccion]) {
+        datosMakro[seleccion].forEach(sub => {
+            const option = document.createElement("option");
+            option.value = sub.replace(/\s+/g, '_').toLowerCase();
+            option.textContent = sub;
+            if (option.value === subcatPreseleccionada) option.selected = true;
+            subcatSelect.appendChild(option);
+        });
+    }
+}
+
+// 2. Función para abrir el modal con los datos actuales
+function openEditModal(index) {
+    editIndex = index;
+    const producto = inventario[index]; // Asumiendo que tu array se llama inventario
+
+    document.getElementById("edit-nombre").value = producto.nombre;
+    document.getElementById("edit-cat").value = producto.categoria;
+    document.getElementById("edit-stock").value = producto.stock;
+    document.getElementById("edit-desc").value = producto.descripcion || "";
+
+    // Cargar las subcategorías y preseleccionar la correcta
+    cargarSubcategoriasEdicion(producto.subcategoria);
+
+    document.getElementById("edit-modal").style.display = "flex";
+}
+
+// 3. Función para borrar un artículo
+function deleteProduct(index) {
+    if (confirm("¿Estás seguro de que deseas eliminar este producto de Makro?")) {
+        inventario.splice(index, 1);
+        renderTable(); // Función que vuelve a dibujar la tabla
+    }
+}
+
+// 4. Cerrar Modal
+function closeModal() {
+    document.getElementById("edit-modal").style.display = "none";
+}
