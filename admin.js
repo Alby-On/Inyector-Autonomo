@@ -47,17 +47,17 @@ function saveEdit() {
     closeModal();
 }
     const datosMakro = {
-    "elec_domiciliaria": ["Conductores", "Canalización PVC", "Artefactos", "Protecciones Domiciliarias", "Cajas y Accesorios"],
+    "elec_domiciliaria": ["Conductores", "Canalización PVC", "Artefactos", "Protecciones", "Cajas y Accesorios"],
     "elec_industrial": ["Tableros y Gabinetes", "Control de Motores", "Maniobra y Relés", "Comandos y Señalética", "Canalización Galvanizada"],
-    "herramientas": ["Herramientas Eléctricas (Total)", "Herramientas de Mano", "Instrumentos de Medición", "Cajas y Organizadores"],
-    "ferreteria_industrial": ["Fijaciones y Anclajes", "Abrasivos y Corte", "Adhesivos y Sellantes", "Herrajes Pesados"],
-    "gasfiteria_electrica": ["Duchas Eléctricas", "Llaves de Agua Eléctricas", "Calentadores de Punto"],
-    "gasfiteria_general": ["Tuberías y Terminales (PPR/PVC)", "Llaves de Paso", "Fitting y Conexiones", "Válvulas y Grifería"],
-    "epp": ["Calzado de Seguridad", "Protección Corporal", "Guantes de Trabajo", "Protección Facial y Craneal"],
-    "seguridad_vigilancia": ["Cámaras CCTV", "Alarmas", "Citofonía", "Redes y Datos"],
-    "automatizacion_control": ["Instrumentación Industrial", "Domótica Smart Home", "Sensores y PLCs"],
-    "iluminacion": ["Proyectores LED (Exterior)", "Paneles y Focos (Interior)", "Emergencia"],
-    "ernc_riego": ["Paneles Solares", "Controladores y Baterías", "Sistemas de Riego"]
+    "herramientas": ["Herramientas Eléctricas Total", "Herramientas de Mano", "Instrumentos de Medición"],
+    "ferreteria_industrial": ["Fijaciones y Anclajes", "Abrasivos y Corte", "Adhesivos y Sellantes"],
+    "gasfiteria_electrica": ["Duchas Eléctricas", "Llaves de Agua Eléctricas", "Termos Eléctricos"],
+    "gasfiteria_general": ["Tuberías PPR/PVC", "Llaves de Paso", "Fitting y Válvulas"],
+    "epp": ["Calzado de Seguridad", "Ropa de Trabajo", "Guantes", "Cascos y Antiparras"],
+    "seguridad_vigilancia": ["Cámaras CCTV", "Alarmas", "Conectividad y Redes"],
+    "automatizacion_control": ["Instrumentación Industrial", "Domótica", "Sensores y PLCs"],
+    "iluminacion": ["Proyectores Exterior", "Focos Interior", "Emergencia"],
+    "ernc_riego": ["Energía Solar", "Sistemas de Riego"]
 };
 
    function cargarSubcategorias() {
@@ -65,16 +65,16 @@ function saveEdit() {
     const subcatSelect = document.getElementById("subcat");
     const seleccion = catSelect.value;
 
-    // Limpiar subcategorías previas
-    subcatSelect.innerHTML = '<option value="">Seleccione Sub-categoría</option>';
+    // Limpiar opciones anteriores
+    subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
 
     if (seleccion && datosMakro[seleccion]) {
         subcatSelect.disabled = false;
         
         datosMakro[seleccion].forEach(sub => {
             const option = document.createElement("option");
-            // Limpiamos el texto para el valor (sin acentos, minúsculas, guiones bajos)
-            option.value = sub.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
+            // El valor interno será el nombre sin espacios para facilitar la base de datos
+            option.value = sub.replace(/\s+/g, '_').toLowerCase();
             option.textContent = sub;
             subcatSelect.appendChild(option);
         });
