@@ -82,10 +82,13 @@ async function previewAndProcess(input, imgId) {
 }
 
 // --- INYECCIÓN (INSERT) ---
+// Asegúrate de que esta variable sea accesible. Si está en otro archivo, NO la declares aquí de nuevo.
+// let archivosListos = { foto1: null, foto2: null, foto3: null }; 
+
 async function inyectarEquipo(e) {
     e.preventDefault();
-    
-    // 1. Referencias y Feedback Visual
+    console.log("Iniciando inyección..."); // Debug en consola
+
     const btn = e.target.querySelector('button');
     const originalText = btn.innerText;
     btn.innerText = "Procesando e Inyectando...";
@@ -94,32 +97,38 @@ async function inyectarEquipo(e) {
     const urls = [];
 
     try {
-        // 2. Ciclo de subida de imágenes procesadas (WebP)
+        // 1. Validar que Supabase esté conectado
+        if (typeof _supabase === 'undefined') {
+            throw new Error("La conexión con Supabase no está definida. Revisa el orden de tus scripts.");
+        }
+
+        // 2. Ciclo de subida de imágenes
         for (let i = 1; i <= 3; i++) {
             const file = archivosListos[`foto${i}`];
             if (file) {
-                // Generamos un nombre único usando timestamp + índice
                 const fileName = `productos/${Date.now()}_${i}.webp`;
                 
-                const { error: uploadError } = await _supabase.storage
+                // Subida al Storage
+                const { data: uploadData, error: uploadError } = await _supabase.storage
                     .from('fotos-productos')
                     .upload(fileName, file);
 
-                if (uploadError) throw uploadError;
+                if (uploadError) throw new Error("Error subiendo imagen " + i + ": " + uploadError.message);
 
-                // Obtenemos la URL pública para la base de datos
+                // Obtener URL pública
                 const { data: publicData } = _supabase.storage
                     .from('fotos-productos')
                     .getPublicUrl(fileName);
                 
                 urls.push(publicData.publicUrl);
+                console.log("Imagen " + i + " subida con éxito.");
             } else { 
                 urls.push(null); 
             }
         }
 
-        // 3. Inserción en la tabla de Supabase
-        const { error: insertError } = await _supabase.from('productos').insert([{
+        // 3. Inserción en la tabla
+        const payload = {
             nombre: document.getElementById('nombre').value,
             categoria: document.getElementById('cat').value,
             subcategoria: document.getElementById('subcat').value,
@@ -128,35 +137,33 @@ async function inyectarEquipo(e) {
             url_imagen_1: urls[0], 
             url_imagen_2: urls[1], 
             url_imagen_3: urls[2]
-        }]);
+        };
 
-        if (insertError) throw insertError;
+        console.log("Enviando datos a la DB:", payload);
 
-        // 4. Éxito y Limpieza Profunda
-        alert("¡Producto inyectado con éxito en el catálogo de Makro SPA!");
+        const { data, error: insertError } = await _supabase
+            .from('productos')
+            .insert([payload])
+            .select(); // Agregamos .select() para confirmar que se creó
+
+        if (insertError) throw new Error("Error en la base de datos: " + insertError.message);
+
+        // 4. Éxito absoluto
+        alert("¡Producto inyectado con éxito en Makro SPA!");
         
-        // Reset completo del formulario
+        // Limpieza solo si todo salió bien
         e.target.reset();
-        
-        // Limpieza de estados visuales y variables
         document.querySelectorAll('.thumb-preview').forEach(img => {
             img.src = "";
             img.style.display = 'none';
         });
-
-        // IMPORTANTE: Deshabilitar subcategoría de nuevo hasta nueva selección
-        const subcatSelect = document.getElementById('subcat');
-        subcatSelect.disabled = true;
-        subcatSelect.innerHTML = '<option value="">Primero elija categoría</option>';
-
-        // Reset del objeto de archivos procesados
+        document.getElementById('subcat').disabled = true;
         archivosListos = { foto1: null, foto2: null, foto3: null };
 
     } catch (err) {
-        console.error("Error técnico en inyección:", err);
-        alert("Error: " + err.message);
+        console.error("DETALLE DEL ERROR:", err);
+        alert("FALLO LA INYECCIÓN: " + err.message);
     } finally {
-        // Restaurar botón
         btn.innerText = originalText;
         btn.disabled = false;
     }
