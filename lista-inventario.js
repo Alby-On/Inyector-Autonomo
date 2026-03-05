@@ -59,17 +59,44 @@ function filterTable() {
 
 // --- ELIMINACIÓN ---
 async function deleteProduct(id) {
-    if (confirm("¿Estás seguro de que deseas eliminar este producto de Makro SPA?")) {
+    if (!confirm("¿Estás seguro de que deseas eliminar este producto? También se borrarán sus imágenes del servidor.")) return;
+
+    // 1. Encontrar el producto en memoria para obtener las URLs de las fotos
+    const producto = productosEnMemoria.find(p => p.id === id);
+    
+    try {
+        // 2. Crear lista de archivos a borrar del Storage
+        const archivosABorrar = [];
+        for (let i = 1; i <= 3; i++) {
+            const url = producto[`url_imagen_${i}`];
+            if (url) {
+                // Extraer el nombre del archivo de la URL
+                const nombreArchivo = url.split('/').pop();
+                archivosABorrar.push(`productos/${nombreArchivo}`);
+            }
+        }
+
+        // 3. Borrar archivos del Storage si existen
+        if (archivosABorrar.length > 0) {
+            await _supabase.storage
+                .from('fotos-productos')
+                .remove(archivosABorrar);
+        }
+
+        // 4. Borrar el registro de la base de datos
         const { error } = await _supabase
             .from('productos')
             .delete()
             .eq('id', id);
 
-        if (error) {
-            alert("Error al eliminar: " + error.message);
-        } else {
-            cargarTablaDesdeSupabase(); 
-        }
+        if (error) throw error;
+
+        alert("Producto e imágenes eliminados correctamente.");
+        cargarTablaDesdeSupabase();
+
+    } catch (err) {
+        console.error("Error al eliminar:", err);
+        alert("Hubo un error al eliminar: " + err.message);
     }
 }
 
@@ -133,8 +160,7 @@ async function saveEdit() {
     btn.disabled = true;
     btn.innerText = "Limpiando y Actualizando...";
 
-    // 1. Obtener los datos actuales del producto desde nuestra memoria local
-    // para saber cuáles son las URLs de las fotos viejas.
+    // 1. Obtener los datos actuales del producto desde la memoria local
     const productoActual = productosEnMemoria.find(p => p.id === idProductoEditando);
 
     const datos = {
@@ -152,25 +178,36 @@ async function saveEdit() {
             const input = document.getElementById(fotoIds[i]);
             
             if (input.files && input.files[0]) {
-                // --- LÓGICA DE ELIMINACIÓN ---
+                // --- LÓGICA DE ELIMINACIÓN SEGURA ---
                 const urlVieja = productoActual[`url_imagen_${i+1}`];
                 if (urlVieja) {
-                    // Extraer el nombre del archivo de la URL
-                    // Ejemplo URL: .../storage/v1/object/public/fotos-productos/productos/archivo.webp
-                    const nombreArchivoViejo = urlVieja.split('/').pop();
-                    const pathViejo = `productos/${nombreArchivoViejo}`;
+                    try {
+                        // Extraemos el nombre limpio ignorando posibles parámetros de URL (?t=...)
+                        const nombreLimpio = urlVieja.split('productos/').pop().split('?')[0];
+                        const pathViejo = `productos/${nombreLimpio}`;
 
-                    // Intentar eliminar del Storage (no bloquea si falla)
-                    await _supabase.storage
-                        .from('fotos-productos')
-                        .remove([pathViejo]);
+                        await _supabase.storage
+                            .from('fotos-productos')
+                            .remove([pathViejo]);
+                        
+                        console.log(`Archivo antiguo eliminado: ${pathViejo}`);
+                    } catch (e) {
+                        console.warn("No se pudo borrar el archivo anterior, procediendo con la subida...");
+                    }
                 }
 
-                // --- LÓGICA DE SUBIDA (Igual que antes) ---
+                // --- LÓGICA DE SUBIDA (WebP) ---
                 const archivo = input.files[0];
-                const opciones = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, fileType: 'image/webp' };
+                const opciones = { 
+                    maxSizeMB: 1, 
+                    maxWidthOrHeight: 1920, 
+                    useWebWorker: true, 
+                    fileType: 'image/webp' 
+                };
+                
                 const compressedFile = await imageCompression(archivo, opciones);
                 
+                // Usamos un nombre que incluya el ID y la marca de tiempo para evitar conflictos
                 const nuevoPath = `productos/${idProductoEditando}_img${i+1}_${Date.now()}.webp`;
                 
                 const { error: uploadError } = await _supabase.storage
@@ -187,7 +224,7 @@ async function saveEdit() {
             }
         }
 
-        // 3. Actualizar tabla
+        // 3. Actualizar tabla en la base de datos
         const { error: updateError } = await _supabase
             .from('productos')
             .update(datos)
@@ -196,11 +233,15 @@ async function saveEdit() {
         if (updateError) throw updateError;
 
         alert("¡Producto actualizado y Storage optimizado!");
+        
+        // Limpiar el input de archivos del modal para la próxima edición
+        fotoIds.forEach(id => document.getElementById(id).value = "");
+        
         closeModal();
         cargarTablaDesdeSupabase();
 
     } catch (err) {
-        console.error("Error:", err);
+        console.error("Error completo:", err);
         alert("Error al actualizar: " + err.message);
     } finally {
         btn.disabled = false;
