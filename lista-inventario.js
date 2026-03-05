@@ -134,17 +134,33 @@ function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
 
 function openEditModal(index) {
     const p = productosEnMemoria[index];
+    if (!p) return; // Seguridad
     idProductoEditando = p.id;
 
+    // Rellenar textos
     document.getElementById("edit-nombre").value = p.nombre;
     document.getElementById("edit-cat").value = p.categoria;
     document.getElementById("edit-stock").value = p.stock;
     document.getElementById("edit-desc").value = p.descripcion || "";
 
-    // IMPORTANTE: Cargamos las subcategorías antes de mostrar el modal
+    // 1. Cargar subcategorías (importante)
     cargarSubcategoriasEdicion(p.subcategoria);
 
-    document.getElementById("edit-modal").style.display = "flex";
+    // 2. Mostrar las fotos actuales en las miniaturas de preview
+    for (let i = 1; i <= 3; i++) {
+        const imgPre = document.getElementById(`pre-edit-${i}`);
+        const url = p[`url_imagen_${i}`];
+        if (url) {
+            imgPre.src = url;
+            imgPre.style.display = "block";
+        } else {
+            imgPre.style.display = "none";
+        }
+    }
+
+    // 3. Mostrar el modal
+    const modal = document.getElementById("edit-modal");
+    if(modal) modal.style.display = "flex";
 }
 
 function closeModal() {
