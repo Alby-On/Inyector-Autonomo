@@ -182,6 +182,12 @@ async function previewAndProcess(input, imgId) {
 // Esta función se ejecuta al enviar el formulario
 async function inyectarEquipo(e) {
     e.preventDefault();
+    
+    // Cambiar texto del botón para feedback visual
+    const btn = e.target.querySelector('button');
+    const originalText = btn.innerText;
+    btn.innerText = "Procesando e Inyectando...";
+    btn.disabled = true;
 
     const nombre = document.getElementById('nombre').value;
     const cat = document.getElementById('cat').value;
@@ -191,43 +197,55 @@ async function inyectarEquipo(e) {
 
     const urls = [];
 
-    // 1. Subir las imágenes procesadas al Storage
-    for (const key in archivosListos) {
-        const file = archivosListos[key];
-        if (file) {
-            const fileName = `${Date.now()}_${key}.webp`;
-            const { data, error } = await supabase.storage
-                .from('fotos-productos')
-                .upload(fileName, file);
+    try {
+        // 1. Subir imágenes al Storage de Supabase
+        for (let i = 1; i <= 3; i++) {
+            const file = archivosListos[`foto${i}`];
+            if (file) {
+                const fileName = `productos/${Date.now()}_${i}.webp`;
+                const { data, error } = await supabase.storage
+                    .from('fotos-productos') // Asegúrate que el bucket sea público
+                    .upload(fileName, file);
 
-            if (!error) {
-                // Obtener URL pública
+                if (error) throw error;
+
                 const { data: { publicUrl } } = supabase.storage
                     .from('fotos-productos')
                     .getPublicUrl(fileName);
+                
                 urls.push(publicUrl);
+            } else {
+                urls.push(null);
             }
-        } else {
-            urls.push(null); // Mantener el espacio si no hay foto
         }
-    }
 
-    // 2. Guardar todo en la tabla de productos
-    const { error: insertError } = await supabase
-        .from('productos')
-        .insert([{
-            nombre: nombre,
-            categoria: cat,
-            subcategoria: subcat,
-            stock: stock,
-            descripcion: desc,
-            url_imagen_1: urls[0],
-            url_imagen_2: urls[1],
-            url_imagen_3: urls[2]
-        }]);
+        // 2. Insertar datos en la tabla 'productos'
+        const { error: insertError } = await supabase
+            .from('productos')
+            .insert([{
+                nombre,
+                categoria: cat,
+                subcategoria: subcat,
+                stock: parseInt(stock),
+                descripcion: desc,
+                url_imagen_1: urls[0],
+                url_imagen_2: urls[1],
+                url_imagen_3: urls[2]
+            }]);
 
-    if (!insertError) {
-        alert("¡Equipo inyectado correctamente en Makro SPA!");
-        location.reload(); // Refrescar para limpiar
+        if (insertError) throw insertError;
+
+        alert("¡Producto inyectado con éxito en Makro SPA!");
+        e.target.reset();
+        // Limpiar previsualizaciones
+        document.querySelectorAll('.thumb-preview').forEach(img => img.style.display = 'none');
+        archivosListos = { foto1: null, foto2: null, foto3: null };
+
+    } catch (err) {
+        console.error("Error completo:", err);
+        alert("Error al conectar con la base de datos: " + err.message);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 }
