@@ -1,63 +1,20 @@
-// Configuración de Supabase
+// 1. Configuración de Supabase (Corregido el nombre de la instancia)
 const SUPABASE_URL = 'https://afrfaeouzkjdkkqeozgq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcmZhZW91emtqZGtrcWVvemdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTg1OTUsImV4cCI6MjA4Nzc5NDU5NX0.CRUaz7sNOuotsV3tVM5O2KvTerAT6uTXHaTy4yKKAdM';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Objeto global para almacenar las imágenes procesadas (WebP)
+// Usamos supabaseClient para no chocar con la librería global
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Variables Globales
 let archivosListos = { foto1: null, foto2: null, foto3: null };
+let productosCargados = []; // Aquí guardaremos lo que viene de la DB
+let idProductoEditando = null;
 
-// Vincular el formulario al evento de guardado
+// Vincular formulario
 document.getElementById('add-form').addEventListener('submit', inyectarEquipo);
 
-/**
- * Cambia la vista activa del gestor
- * @param {string} viewId - El ID del div a mostrar
- * @param {HTMLElement} btn - El botón presionado
- */
-function showView(viewId, btn) {
-    // Ocultar todas las vistas
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    
-    // Quitar estado activo de todos los botones
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    
-    // Mostrar la vista seleccionada
-    document.getElementById(viewId).classList.add('active');
-    
-    // Activar el botón presionado
-    btn.classList.add('active');
-}
-
-/**
- * Filtra las filas de la tabla de inventario según el buscador
- */
-function filterTable() {
-    let input = document.getElementById("search").value.toLowerCase();
-    let rows = document.getElementById("inventory-body").getElementsByTagName("tr");
-    
-    for (let row of rows) {
-        // Muestra u oculta la fila basándose en si el texto coincide
-        row.style.display = row.textContent.toLowerCase().includes(input) ? "" : "none";
-    }
-}
-
-/**
- * Funciones para el manejo del Modal de Edición
- */
-function openEditModal() { 
-    document.getElementById('edit-modal').style.display = 'flex'; 
-}
-
-function closeModal() { 
-    document.getElementById('edit-modal').style.display = 'none'; 
-}
-
-// Ejemplo de función para guardar (puedes conectarla con Supabase aquí)
-function saveEdit() {
-    console.log("Datos actualizados localmente");
-    closeModal();
-}
-    const datosMakro = {
+// --- LÓGICA DE CATEGORÍAS ---
+const datosMakro = {
     "elec_domiciliaria": ["Conductores", "Canalización PVC", "Artefactos", "Protecciones", "Cajas y Accesorios"],
     "elec_industrial": ["Tableros y Gabinetes", "Control de Motores", "Maniobra y Relés", "Comandos y Señalética", "Canalización Galvanizada"],
     "herramientas": ["Herramientas Eléctricas Total", "Herramientas de Mano", "Instrumentos de Medición"],
@@ -70,20 +27,16 @@ function saveEdit() {
     "ernc_riego": ["Energía Solar", "Sistemas de Riego"]
 };
 
-   function cargarSubcategorias() {
+function cargarSubcategorias() {
     const catSelect = document.getElementById("cat");
     const subcatSelect = document.getElementById("subcat");
     const seleccion = catSelect.value;
-
-    // Limpiar opciones anteriores
     subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
 
     if (seleccion && datosMakro[seleccion]) {
         subcatSelect.disabled = false;
-        
         datosMakro[seleccion].forEach(sub => {
             const option = document.createElement("option");
-            // El valor interno será el nombre sin espacios para facilitar la base de datos
             option.value = sub.replace(/\s+/g, '_').toLowerCase();
             option.textContent = sub;
             subcatSelect.appendChild(option);
@@ -92,160 +45,160 @@ function saveEdit() {
         subcatSelect.disabled = true;
     }
 }
-// Variable global para saber qué producto estamos editando
-let editIndex = null;
 
-// 1. Función para cargar subcategorías DENTRO del modal
-function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
-    const catSelect = document.getElementById("edit-cat");
-    const subcatSelect = document.getElementById("edit-subcat");
-    const seleccion = catSelect.value;
+// --- GESTIÓN DE VISTAS ---
+function showView(viewId, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    btn.classList.add('active');
+    
+    // Si entramos a la lista, cargamos los datos reales
+    if(viewId === 'list-view') fetchProductos();
+}
 
-    subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
+// --- OPERACIONES SUPABASE (CRUD) ---
 
-    if (seleccion && datosMakro[seleccion]) {
-        datosMakro[seleccion].forEach(sub => {
-            const option = document.createElement("option");
-            option.value = sub.replace(/\s+/g, '_').toLowerCase();
-            option.textContent = sub;
-            if (option.value === subcatPreseleccionada) option.selected = true;
-            subcatSelect.appendChild(option);
-        });
+// LEER PRODUCTOS
+async function fetchProductos() {
+    const { data, error } = await _supabase
+        .from('productos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error cargando productos:", error);
+        return;
+    }
+    productosCargados = data;
+    renderTable(data);
+}
+
+function renderTable(data) {
+    const container = document.getElementById("inventory-body");
+    container.innerHTML = "";
+    
+    data.forEach((prod, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><img src="${prod.url_imagen_1 || 'https://via.placeholder.com/50'}" class="thumb"></td>
+            <td>${prod.nombre}</td>
+            <td>${prod.categoria}</td>
+            <td>${prod.stock}</td>
+            <td>
+                <span class="action-edit" onclick="openEditModal(${index})">Editar</span>
+                <span class="action-delete" onclick="deleteProduct('${prod.id}')">Eliminar</span>
+            </td>
+        `;
+        container.appendChild(tr);
+    });
+}
+
+// ELIMINAR PRODUCTO (Corregido para borrar de Supabase)
+async function deleteProduct(id) {
+    if (confirm("¿Estás seguro de eliminar este producto de Makro SPA?")) {
+        const { error } = await _supabase
+            .from('productos')
+            .delete()
+            .eq('id', id);
+
+        if (error) alert("Error al eliminar");
+        else fetchProductos(); // Recargar tabla
     }
 }
 
-// 2. Función para abrir el modal con los datos actuales
+// --- PROCESAMIENTO DE IMÁGENES ---
+const opcionesCompresion = {
+    maxSizeMB: 3,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true,
+    fileType: 'image/webp'
+};
+
+async function previewAndProcess(input, imgId) {
+    const file = input.files[0];
+    if (!file) return;
+    const preview = document.getElementById(imgId);
+    
+    try {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        const compressedFile = await imageCompression(file, opcionesCompresion);
+        archivosListos[input.id] = compressedFile;
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+// --- INYECTAR EQUIPO (INSERT) ---
+async function inyectarEquipo(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.innerText = "Inyectando...";
+    btn.disabled = true;
+
+    const urls = [];
+    try {
+        for (let i = 1; i <= 3; i++) {
+            const file = archivosListos[`foto${i}`];
+            if (file) {
+                const fileName = `productos/${Date.now()}_${i}.webp`;
+                const { data, error } = await _supabase.storage
+                    .from('fotos-productos')
+                    .upload(fileName, file);
+                if (error) throw error;
+                const { data: { publicUrl } } = _supabase.storage.from('fotos-productos').getPublicUrl(fileName);
+                urls.push(publicUrl);
+            } else { urls.push(null); }
+        }
+
+        const { error: insertError } = await _supabase.from('productos').insert([{
+            nombre: document.getElementById('nombre').value,
+            categoria: document.getElementById('cat').value,
+            subcategoria: document.getElementById('subcat').value,
+            stock: parseInt(document.getElementById('stock').value),
+            descripcion: document.getElementById('desc').value,
+            url_imagen_1: urls[0], url_imagen_2: urls[1], url_imagen_3: urls[2]
+        }]);
+
+        if (insertError) throw insertError;
+        alert("¡Inyectado con éxito!");
+        e.target.reset();
+        archivosListos = { foto1: null, foto2: null, foto3: null };
+    } catch (err) {
+        alert("Error: " + err.message);
+    } finally {
+        btn.innerText = "Inyectar Producto";
+        btn.disabled = false;
+    }
+}
+
+// --- MODAL DE EDICIÓN ---
 function openEditModal(index) {
-    editIndex = index;
-    const producto = inventario[index]; // Asumiendo que tu array se llama inventario
+    const producto = productosCargados[index];
+    idProductoEditando = producto.id;
 
     document.getElementById("edit-nombre").value = producto.nombre;
     document.getElementById("edit-cat").value = producto.categoria;
     document.getElementById("edit-stock").value = producto.stock;
     document.getElementById("edit-desc").value = producto.descripcion || "";
 
-    // Cargar las subcategorías y preseleccionar la correcta
-    cargarSubcategoriasEdicion(producto.subcategoria);
-
+    // Cargar subcategorías en el modal
+    const subcatSelect = document.getElementById("edit-subcat");
+    const seleccion = producto.categoria;
+    subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
+    if (seleccion && datosMakro[seleccion]) {
+        datosMakro[seleccion].forEach(sub => {
+            const option = document.createElement("option");
+            option.value = sub.replace(/\s+/g, '_').toLowerCase();
+            option.textContent = sub;
+            if(option.value === producto.subcategoria) option.selected = true;
+            subcatSelect.appendChild(option);
+        });
+    }
     document.getElementById("edit-modal").style.display = "flex";
 }
 
-// 3. Función para borrar un artículo
-function deleteProduct(index) {
-    if (confirm("¿Estás seguro de que deseas eliminar este producto de Makro?")) {
-        inventario.splice(index, 1);
-        renderTable(); // Función que vuelve a dibujar la tabla
-    }
-}
-
-// 4. Cerrar Modal
 function closeModal() {
     document.getElementById("edit-modal").style.display = "none";
-}
-// Configuración de compresión
-const opcionesCompresion = {
-    maxSizeMB: 3,            // Tu límite de 3MB
-    maxWidthOrHeight: 1920,   // Resolución máxima para web
-    useWebWorker: true,
-    fileType: 'image/webp'    // Forzamos la salida a WebP
-};
-
-// Objeto para guardar los archivos ya procesados listos para Supabase
-let archivosListos = { foto1: null, foto2: null, foto3: null };
-
-async function previewAndProcess(input, imgId) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const preview = document.getElementById(imgId);
-    
-    try {
-        console.log(`Procesando ${file.name}...`);
-        
-        // 1. Mostrar vista previa inmediata (del original para feedback rápido)
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
-
-        // 2. Ejecutar la compresión y conversión a WebP
-        const compressedFile = await imageCompression(file, opcionesCompresion);
-        
-        // 3. Guardar el blob resultante en nuestro objeto de envío
-        archivosListos[input.id] = compressedFile;
-        
-        console.log(`Conversión exitosa: ${compressedFile.size / 1024 / 1024} MB - Tipo: ${compressedFile.type}`);
-        
-    } catch (error) {
-        console.error("Error en la conversión:", error);
-        alert("Hubo un error al procesar la imagen. Intenta con otra.");
-    }
-}
-// Esta función se ejecuta al enviar el formulario
-async function inyectarEquipo(e) {
-    e.preventDefault();
-    
-    // Cambiar texto del botón para feedback visual
-    const btn = e.target.querySelector('button');
-    const originalText = btn.innerText;
-    btn.innerText = "Procesando e Inyectando...";
-    btn.disabled = true;
-
-    const nombre = document.getElementById('nombre').value;
-    const cat = document.getElementById('cat').value;
-    const subcat = document.getElementById('subcat').value;
-    const stock = document.getElementById('stock').value;
-    const desc = document.getElementById('desc').value;
-
-    const urls = [];
-
-    try {
-        // 1. Subir imágenes al Storage de Supabase
-        for (let i = 1; i <= 3; i++) {
-            const file = archivosListos[`foto${i}`];
-            if (file) {
-                const fileName = `productos/${Date.now()}_${i}.webp`;
-                const { data, error } = await supabase.storage
-                    .from('fotos-productos') // Asegúrate que el bucket sea público
-                    .upload(fileName, file);
-
-                if (error) throw error;
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('fotos-productos')
-                    .getPublicUrl(fileName);
-                
-                urls.push(publicUrl);
-            } else {
-                urls.push(null);
-            }
-        }
-
-        // 2. Insertar datos en la tabla 'productos'
-        const { error: insertError } = await supabase
-            .from('productos')
-            .insert([{
-                nombre,
-                categoria: cat,
-                subcategoria: subcat,
-                stock: parseInt(stock),
-                descripcion: desc,
-                url_imagen_1: urls[0],
-                url_imagen_2: urls[1],
-                url_imagen_3: urls[2]
-            }]);
-
-        if (insertError) throw insertError;
-
-        alert("¡Producto inyectado con éxito en Makro SPA!");
-        e.target.reset();
-        // Limpiar previsualizaciones
-        document.querySelectorAll('.thumb-preview').forEach(img => img.style.display = 'none');
-        archivosListos = { foto1: null, foto2: null, foto3: null };
-
-    } catch (err) {
-        console.error("Error completo:", err);
-        alert("Error al conectar con la base de datos: " + err.message);
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
 }
