@@ -6,10 +6,10 @@
     <title>Gestor Makro SPA</title>
     <link rel="stylesheet" href="admin.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script> 
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script src="inyeccion-supabase.js"></script>
     <script src="lista-inventario.js"></script>
-    <script src="supabase-client.js"></script>
 </head>
     
 <body>
@@ -94,62 +94,94 @@
     </div>
 </div>
 
-<div id="edit-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>Editar Producto</h3>
+<div id="list-view" class="view">
+    <div class="card">
+        <div class="list-header">
+            <h2>Inventario en Tiempo Real</h2>
+            <div class="search-box">
+                <input type="text" id="search" placeholder="🔍 Buscar por nombre o categoría..." onkeyup="filterTable()">
+            </div>
+        </div>
         
-        <div class="form-group">
-            <label>Título</label>
-            <input type="text" id="edit-nombre">
+        <div class="table-container">
+            <table class="inventory-table">
+                <thead>
+                    <tr>
+                        <th>Foto</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-body"></tbody>
+            </table>
         </div>
-
-        <div class="grid">
-            <div class="form-group">
-                <label>Categoría</label>
-                <select id="edit-cat" onchange="cargarSubcategoriasEdicion()">
-                    <option value="">Seleccione Categoría</option>
-                    <option value="elec_domiciliaria">Electricidad Domiciliaria</option>
-                    <option value="elec_industrial">Electricidad Industrial</option>
-                    <option value="herramientas">Herramientas (Total/Manuales)</option>
-                    <option value="ferreteria_industrial">Ferretería Industrial</option>
-                    <option value="gasfiteria">Gasfitería</option>
-                    <option value="epp">EPP (Protección Personal)</option>
-                    <option value="seguridad_vigilancia">Seguridad y Vigilancia</option>
-                    <option value="automatizacion_control">Automatización y Control</option>
-                    <option value="iluminacion">Iluminación LED</option>
-                    <option value="ernc_riego">ERNC - Riego</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Sub-Categoría</label>
-                <select id="edit-subcat">
-                    <option value="">Seleccione Sub-Categoría</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="grid">
-            <div class="form-group">
-                <label>Stock Actual</label>
-                <input type="number" id="edit-stock">
-            </div>
-            <div class="form-group">
-                <label>Foto Nueva (Opcional)</label>
-                <input type="file" id="edit-foto" accept="image/*">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Descripción Técnica</label>
-            <textarea id="edit-desc"></textarea>
-        </div>
-
-        <button class="btn-main" onclick="saveEdit()">Actualizar Datos</button>
-        <button onclick="closeModal()" style="background:none; border:none; width:100%; margin-top:10px; cursor:pointer; color: #666;">Cancelar</button>
     </div>
 </div>
 
+<div id="edit-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Producto</h3>
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+        </div>
+        
+        <form id="edit-form" onsubmit="event.preventDefault();">
+            <div class="form-group">
+                <label for="edit-nombre">Título del Equipo</label>
+                <input type="text" id="edit-nombre" placeholder="Ej: Taladro Percutor 13mm">
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label for="edit-cat">Categoría</label>
+                    <select id="edit-cat" onchange="cargarSubcategoriasEdicion()">
+                        <option value="">Seleccione Categoría</option>
+                        <option value="elec_domiciliaria">Electricidad Domiciliaria</option>
+                        <option value="elec_industrial">Electricidad Industrial</option>
+                        <option value="herramientas">Herramientas</option>
+                        <option value="ferreteria_industrial">Ferretería Industrial</option>
+                        <option value="gasfiteria">Gasfitería</option>
+                        <option value="epp">EPP (Protección Personal)</option>
+                        <option value="seguridad_vigilancia">Seguridad y Vigilancia</option>
+                        <option value="automatizacion_control">Automatización y Control</option>
+                        <option value="iluminacion">Iluminación LED</option>
+                        <option value="ernc_riego">ERNC - Riego</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-subcat">Sub-Categoría</label>
+                    <select id="edit-subcat">
+                        <option value="">Seleccione Sub-Categoría</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label for="edit-stock">Stock Actual</label>
+                    <input type="number" id="edit-stock" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="edit-foto">Foto Nueva (Opcional)</label>
+                    <input type="file" id="edit-foto" accept="image/jpeg, image/png">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-desc">Descripción Técnica</label>
+                <textarea id="edit-desc" rows="4" placeholder="Especificaciones, dimensiones, etc."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-main" onclick="saveEdit()">Actualizar Datos</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     
 </body>
