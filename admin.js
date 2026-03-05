@@ -117,41 +117,79 @@ async function previewAndProcess(input, imgId) {
 // --- INYECCIÓN (INSERT) ---
 async function inyectarEquipo(e) {
     e.preventDefault();
+    
+    // 1. Referencias y Feedback Visual
     const btn = e.target.querySelector('button');
     const originalText = btn.innerText;
-    btn.innerText = "Inyectando...";
+    btn.innerText = "Procesando e Inyectando...";
     btn.disabled = true;
 
     const urls = [];
+
     try {
+        // 2. Ciclo de subida de imágenes procesadas (WebP)
         for (let i = 1; i <= 3; i++) {
             const file = archivosListos[`foto${i}`];
             if (file) {
+                // Generamos un nombre único usando timestamp + índice
                 const fileName = `productos/${Date.now()}_${i}.webp`;
-                const { error } = await _supabase.storage.from('fotos-productos').upload(fileName, file);
-                if (error) throw error;
-                const { data } = _supabase.storage.from('fotos-productos').getPublicUrl(fileName);
-                urls.push(data.publicUrl);
-            } else { urls.push(null); }
+                
+                const { error: uploadError } = await _supabase.storage
+                    .from('fotos-productos')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                // Obtenemos la URL pública para la base de datos
+                const { data: publicData } = _supabase.storage
+                    .from('fotos-productos')
+                    .getPublicUrl(fileName);
+                
+                urls.push(publicData.publicUrl);
+            } else { 
+                urls.push(null); 
+            }
         }
 
+        // 3. Inserción en la tabla de Supabase
         const { error: insertError } = await _supabase.from('productos').insert([{
             nombre: document.getElementById('nombre').value,
             categoria: document.getElementById('cat').value,
             subcategoria: document.getElementById('subcat').value,
-            stock: parseInt(document.getElementById('stock').value),
+            stock: parseInt(document.getElementById('stock').value) || 0,
             descripcion: document.getElementById('desc').value,
-            url_imagen_1: urls[0], url_imagen_2: urls[1], url_imagen_3: urls[2]
+            url_imagen_1: urls[0], 
+            url_imagen_2: urls[1], 
+            url_imagen_3: urls[2]
         }]);
 
         if (insertError) throw insertError;
-        alert("¡Producto inyectado con éxito!");
+
+        // 4. Éxito y Limpieza Profunda
+        alert("¡Producto inyectado con éxito en el catálogo de Makro SPA!");
+        
+        // Reset completo del formulario
         e.target.reset();
-        document.querySelectorAll('.thumb-preview').forEach(img => img.style.display = 'none');
+        
+        // Limpieza de estados visuales y variables
+        document.querySelectorAll('.thumb-preview').forEach(img => {
+            img.src = "";
+            img.style.display = 'none';
+        });
+
+        // IMPORTANTE: Deshabilitar subcategoría de nuevo hasta nueva selección
+        const subcatSelect = document.getElementById('subcat');
+        subcatSelect.disabled = true;
+        subcatSelect.innerHTML = '<option value="">Primero elija categoría</option>';
+
+        // Reset del objeto de archivos procesados
         archivosListos = { foto1: null, foto2: null, foto3: null };
+
     } catch (err) {
+        console.error("Error técnico en inyección:", err);
         alert("Error: " + err.message);
     } finally {
+        // Restaurar botón
         btn.innerText = originalText;
         btn.disabled = false;
     }
