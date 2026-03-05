@@ -154,29 +154,32 @@
                 </div>
             </div>
 
-            <div class="grid">
-                <div class="form-group">
-                    <label for="edit-stock">Stock Actual</label>
-                    <input type="number" id="edit-stock" min="0">
-                </div>
-                <div class="form-group full">
-                    <label>Fotografías del Equipo (Opcional - Se reemplazarán solo las que selecciones)</label>
-                        <div class="grid-photos">
-                        <div class="photo-upload">
-                            <input type="file" id="edit-foto1" accept="image/jpeg, image/png">
-                            <small>Foto 1 (Principal)</small>
-                    </div>
-                        <div class="photo-upload">
-                        <input type="file" id="edit-foto2" accept="image/jpeg, image/png">
-                    <small>Foto 2</small>
+            <div class="form-group full">
+    <label>Fotografías del Equipo (Se reemplazarán solo las seleccionadas)</label>
+    <div class="grid-photos">
+        <div class="photo-upload">
+            <input type="file" id="edit-foto1" accept="image/*" onchange="previewEdit(this, 'pre-edit-1')">
+            <div class="preview-container">
+                <img id="pre-edit-1" src="" class="edit-thumb" style="display:none">
+            </div>
+            <small>Foto 1 (Principal)</small>
         </div>
         <div class="photo-upload">
-            <input type="file" id="edit-foto3" accept="image/jpeg, image/png">
+            <input type="file" id="edit-foto2" accept="image/*" onchange="previewEdit(this, 'pre-edit-2')">
+            <div class="preview-container">
+                <img id="pre-edit-2" src="" class="edit-thumb" style="display:none">
+            </div>
+            <small>Foto 2</small>
+        </div>
+        <div class="photo-upload">
+            <input type="file" id="edit-foto3" accept="image/*" onchange="previewEdit(this, 'pre-edit-3')">
+            <div class="preview-container">
+                <img id="pre-edit-3" src="" class="edit-thumb" style="display:none">
+            </div>
             <small>Foto 3</small>
         </div>
     </div>
 </div>
-            </div>
 
             <div class="form-group">
                 <label for="edit-desc">Descripción Técnica</label>
