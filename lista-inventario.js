@@ -130,12 +130,10 @@ async function saveEdit() {
 
     const btn = document.querySelector('#edit-modal .btn-main');
     const originalText = btn.innerText;
-    
-    // Feedback visual de carga
     btn.disabled = true;
-    btn.innerText = "Procesando y Guardando...";
+    btn.innerText = "Procesando imágenes y datos...";
 
-    // 1. Recolectar datos básicos
+    // 1. Datos básicos
     const datos = {
         nombre: document.getElementById("edit-nombre").value,
         categoria: document.getElementById("edit-cat").value,
@@ -145,39 +143,44 @@ async function saveEdit() {
     };
 
     try {
-        // 2. Manejo de Nueva Imagen (Opcional)
-        const inputFoto = document.getElementById("edit-foto");
-        if (inputFoto.files && inputFoto.files[0]) {
-            const archivo = inputFoto.files[0];
+        // 2. Procesar las 3 fotos
+        const fotoIds = ['edit-foto1', 'edit-foto2', 'edit-foto3'];
+        
+        for (let i = 0; i < fotoIds.length; i++) {
+            const input = document.getElementById(fotoIds[i]);
             
-            // Configuración de compresión (WebP para ahorrar espacio)
-            const opciones = {
-                maxSizeMB: 1,
-                maxWidthOrHeight: 1920,
-                useWebWorker: true,
-                fileType: 'image/webp'
-            };
+            if (input.files && input.files[0]) {
+                const archivo = input.files[0];
+                
+                // Compresión a WebP
+                const opciones = {
+                    maxSizeMB: 1,
+                    maxWidthOrHeight: 1920,
+                    useWebWorker: true,
+                    fileType: 'image/webp'
+                };
+                
+                const compressedFile = await imageCompression(archivo, opciones);
+                
+                // Subida con nombre único para evitar cache
+                const path = `productos/${idProductoEditando}_img${i+1}_${Date.now()}.webp`;
+                const { error: uploadError } = await _supabase.storage
+                    .from('fotos-productos')
+                    .upload(path, compressedFile);
 
-            // Compresión local
-            const compressedFile = await imageCompression(archivo, opciones);
-            
-            // Subida al Storage
-            const fileName = `productos/edit_${Date.now()}.webp`;
-            const { error: uploadError } = await _supabase.storage
-                .from('fotos-productos')
-                .upload(fileName, compressedFile);
+                if (uploadError) throw uploadError;
 
-            if (uploadError) throw uploadError;
-
-            // Obtener URL y agregarla a los datos de actualización
-            const { data: publicData } = _supabase.storage
-                .from('fotos-productos')
-                .getPublicUrl(fileName);
-            
-            datos.url_imagen_1 = publicData.publicUrl;
+                // Obtener URL pública
+                const { data: publicData } = _supabase.storage
+                    .from('fotos-productos')
+                    .getPublicUrl(path);
+                
+                // Guardar en el objeto de datos (url_imagen_1, url_imagen_2, etc)
+                datos[`url_imagen_${i+1}`] = publicData.publicUrl;
+            }
         }
 
-        // 3. Update en la tabla 'productos'
+        // 3. Actualizar en Supabase
         const { error: updateError } = await _supabase
             .from('productos')
             .update(datos)
@@ -185,13 +188,13 @@ async function saveEdit() {
 
         if (updateError) throw updateError;
 
-        alert("¡Producto de Makro SPA actualizado correctamente!");
+        alert("¡Producto actualizado con éxito!");
         closeModal();
-        cargarTablaDesdeSupabase(); // Refrescar la tabla
+        cargarTablaDesdeSupabase();
 
     } catch (err) {
-        console.error("Error en edición:", err);
-        alert("Hubo un problema: " + err.message);
+        console.error("Error al editar:", err);
+        alert("Error: " + err.message);
     } finally {
         btn.disabled = false;
         btn.innerText = originalText;
