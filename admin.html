@@ -60,22 +60,22 @@
                     </div>
 
                     <div class="form-group full">
-    <label>Fotografías del Equipo (JPG o PNG - Se convertirán a WebP optimizado)</label>
-    <div class="grid-photos">
-        <div class="photo-upload">
-            <input type="file" id="foto1" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p1')">
-            <img id="p1" class="thumb-preview" src="" style="display:none">
-        </div>
-        <div class="photo-upload">
-            <input type="file" id="foto2" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p2')">
-            <img id="p2" class="thumb-preview" src="" style="display:none">
-        </div>
-        <div class="photo-upload">
-            <input type="file" id="foto3" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p3')">
-            <img id="p3" class="thumb-preview" src="" style="display:none">
-        </div>
-    </div>
-</div>
+                        <label>Fotografías del Equipo (WebP optimizado)</label>
+                        <div class="grid-photos">
+                            <div class="photo-upload">
+                                <input type="file" id="foto1" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p1')">
+                                <img id="p1" class="thumb-preview" src="" style="display:none">
+                            </div>
+                            <div class="photo-upload">
+                                <input type="file" id="foto2" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p2')">
+                                <img id="p2" class="thumb-preview" src="" style="display:none">
+                            </div>
+                            <div class="photo-upload">
+                                <input type="file" id="foto3" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p3')">
+                                <img id="p3" class="thumb-preview" src="" style="display:none">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -87,30 +87,30 @@
             </form>
         </div>
     </div>
-</div>
 
-<div id="list-view" class="view">
-    <div class="card">
-        <div class="list-header">
-            <h2>Inventario en Tiempo Real</h2>
-            <div class="search-box">
-                <input type="text" id="search" placeholder="🔍 Buscar por nombre o categoría..." onkeyup="filterTable()">
+    <div id="list-view" class="view">
+        <div class="card">
+            <div class="list-header">
+                <h2>Inventario en Tiempo Real</h2>
+                <div class="search-box">
+                    <input type="text" id="search" placeholder="🔍 Buscar por nombre o categoría..." onkeyup="filterTable()">
+                </div>
             </div>
-        </div>
-        
-        <div class="table-container">
-            <table class="inventory-table">
-                <thead>
-                    <tr>
-                        <th>Foto</th>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Stock</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="inventory-body"></tbody>
-            </table>
+            
+            <div class="table-container">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -122,10 +122,10 @@
             <span class="close-modal" onclick="closeModal()">&times;</span>
         </div>
         
-        <form id="edit-form" onsubmit="event.preventDefault();">
+        <form id="edit-form">
             <div class="form-group">
                 <label for="edit-nombre">Título del Equipo</label>
-                <input type="text" id="edit-nombre" placeholder="Ej: Taladro Percutor 13mm">
+                <input type="text" id="edit-nombre">
             </div>
 
             <div class="grid">
@@ -152,38 +152,40 @@
                         <option value="">Seleccione Sub-Categoría</option>
                     </select>
                 </div>
+                
+                <div class="form-group">
+                    <label for="edit-stock">Stock Actual</label>
+                    <input type="number" id="edit-stock" min="0">
+                </div>
             </div>
 
             <div class="form-group full">
-    <label>Fotografías del Equipo (Se reemplazarán solo las seleccionadas)</label>
-    <div class="grid-photos">
-    <div class="photo-upload">
-        <input type="file" id="edit-foto1" accept="image/*" onchange="previewEdit(this, 'pre-edit-1')">
-        <div class="preview-container">
-            <img id="pre-edit-1" src="" class="edit-thumb" style="display:none">
-        </div>
-        <small>Foto 1</small>
-    </div>
-    <div class="photo-upload">
-        <input type="file" id="edit-foto2" accept="image/*" onchange="previewEdit(this, 'pre-edit-2')">
-        <div class="preview-container">
-            <img id="pre-edit-2" src="" class="edit-thumb" style="display:none">
-        </div>
-        <small>Foto 2</small>
-    </div>
-    <div class="photo-upload">
-        <input type="file" id="edit-foto3" accept="image/*" onchange="previewEdit(this, 'pre-edit-3')">
-        <div class="preview-container">
-            <img id="pre-edit-3" src="" class="edit-thumb" style="display:none">
-        </div>
-        <small>Foto 3</small>
-    </div>
-</div>
-</div>
+                <label>Fotografías (Vista Previa)</label>
+                <div class="grid-photos">
+                    <div class="photo-upload">
+                        <input type="file" id="edit-foto1" accept="image/*" onchange="previewEdit(this, 'pre-edit-1')">
+                        <div class="preview-container">
+                            <img id="pre-edit-1" src="" class="edit-thumb" style="display:none">
+                        </div>
+                    </div>
+                    <div class="photo-upload">
+                        <input type="file" id="edit-foto2" accept="image/*" onchange="previewEdit(this, 'pre-edit-2')">
+                        <div class="preview-container">
+                            <img id="pre-edit-2" src="" class="edit-thumb" style="display:none">
+                        </div>
+                    </div>
+                    <div class="photo-upload">
+                        <input type="file" id="edit-foto3" accept="image/*" onchange="previewEdit(this, 'pre-edit-3')">
+                        <div class="preview-container">
+                            <img id="pre-edit-3" src="" class="edit-thumb" style="display:none">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="form-group">
                 <label for="edit-desc">Descripción Técnica</label>
-                <textarea id="edit-desc" rows="4" placeholder="Especificaciones, dimensiones, etc."></textarea>
+                <textarea id="edit-desc" rows="4"></textarea>
             </div>
 
             <div class="modal-footer">
@@ -193,12 +195,12 @@
         </form>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+<script src="supabase-client.js"></script> 
+<script src="inyeccion-supabase.js"></script>
+<script src="lista-inventario.js"></script>
 
-    <script src="supabase-client.js"></script> 
-
-    <script src="inyeccion-supabase.js"></script>
-    <script src="lista-inventario.js"></script>
 </body>
 </html>
