@@ -131,9 +131,12 @@ async function saveEdit() {
     const btn = document.querySelector('#edit-modal .btn-main');
     const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "Procesando imágenes y datos...";
+    btn.innerText = "Limpiando y Actualizando...";
 
-    // 1. Datos básicos
+    // 1. Obtener los datos actuales del producto desde nuestra memoria local
+    // para saber cuáles son las URLs de las fotos viejas.
+    const productoActual = productosEnMemoria.find(p => p.id === idProductoEditando);
+
     const datos = {
         nombre: document.getElementById("edit-nombre").value,
         categoria: document.getElementById("edit-cat").value,
@@ -143,44 +146,48 @@ async function saveEdit() {
     };
 
     try {
-        // 2. Procesar las 3 fotos
         const fotoIds = ['edit-foto1', 'edit-foto2', 'edit-foto3'];
         
         for (let i = 0; i < fotoIds.length; i++) {
             const input = document.getElementById(fotoIds[i]);
             
             if (input.files && input.files[0]) {
+                // --- LÓGICA DE ELIMINACIÓN ---
+                const urlVieja = productoActual[`url_imagen_${i+1}`];
+                if (urlVieja) {
+                    // Extraer el nombre del archivo de la URL
+                    // Ejemplo URL: .../storage/v1/object/public/fotos-productos/productos/archivo.webp
+                    const nombreArchivoViejo = urlVieja.split('/').pop();
+                    const pathViejo = `productos/${nombreArchivoViejo}`;
+
+                    // Intentar eliminar del Storage (no bloquea si falla)
+                    await _supabase.storage
+                        .from('fotos-productos')
+                        .remove([pathViejo]);
+                }
+
+                // --- LÓGICA DE SUBIDA (Igual que antes) ---
                 const archivo = input.files[0];
-                
-                // Compresión a WebP
-                const opciones = {
-                    maxSizeMB: 1,
-                    maxWidthOrHeight: 1920,
-                    useWebWorker: true,
-                    fileType: 'image/webp'
-                };
-                
+                const opciones = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, fileType: 'image/webp' };
                 const compressedFile = await imageCompression(archivo, opciones);
                 
-                // Subida con nombre único para evitar cache
-                const path = `productos/${idProductoEditando}_img${i+1}_${Date.now()}.webp`;
+                const nuevoPath = `productos/${idProductoEditando}_img${i+1}_${Date.now()}.webp`;
+                
                 const { error: uploadError } = await _supabase.storage
                     .from('fotos-productos')
-                    .upload(path, compressedFile);
+                    .upload(nuevoPath, compressedFile);
 
                 if (uploadError) throw uploadError;
 
-                // Obtener URL pública
                 const { data: publicData } = _supabase.storage
                     .from('fotos-productos')
-                    .getPublicUrl(path);
+                    .getPublicUrl(nuevoPath);
                 
-                // Guardar en el objeto de datos (url_imagen_1, url_imagen_2, etc)
                 datos[`url_imagen_${i+1}`] = publicData.publicUrl;
             }
         }
 
-        // 3. Actualizar en Supabase
+        // 3. Actualizar tabla
         const { error: updateError } = await _supabase
             .from('productos')
             .update(datos)
@@ -188,13 +195,13 @@ async function saveEdit() {
 
         if (updateError) throw updateError;
 
-        alert("¡Producto actualizado con éxito!");
+        alert("¡Producto actualizado y Storage optimizado!");
         closeModal();
         cargarTablaDesdeSupabase();
 
     } catch (err) {
-        console.error("Error al editar:", err);
-        alert("Error: " + err.message);
+        console.error("Error:", err);
+        alert("Error al actualizar: " + err.message);
     } finally {
         btn.disabled = false;
         btn.innerText = originalText;
