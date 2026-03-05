@@ -58,10 +58,23 @@
                         <input type="number" id="stock" value="0">
                     </div>
 
-                    <div class="form-group">
-                        <label>Imagen del Producto</label>
-                        <input type="file" id="foto" accept="image/*" required>
-                    </div>
+                    <div class="form-group full">
+    <label>Fotografías del Equipo (JPG o PNG - Se convertirán a WebP optimizado)</label>
+    <div class="grid-photos">
+        <div class="photo-upload">
+            <input type="file" id="foto1" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p1')">
+            <img id="p1" class="thumb-preview" src="" style="display:none">
+        </div>
+        <div class="photo-upload">
+            <input type="file" id="foto2" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p2')">
+            <img id="p2" class="thumb-preview" src="" style="display:none">
+        </div>
+        <div class="photo-upload">
+            <input type="file" id="foto3" accept="image/jpeg, image/png" onchange="previewAndProcess(this, 'p3')">
+            <img id="p3" class="thumb-preview" src="" style="display:none">
+        </div>
+    </div>
+</div>
                 </div>
 
                 <div class="form-group">
@@ -131,6 +144,7 @@
     </div>
 </div>
 
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 <script src="admin.js"></script>
     
 </body>
