@@ -1,8 +1,3 @@
-// 1. Configuración de Supabase (Corregido: usamos un nombre distinto para la instancia)
-const SUPABASE_URL = 'https://afrfaeouzkjdkkqeozgq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcmZhZW91emtqZGtrcWVvemdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTg1OTUsImV4cCI6MjA4Nzc5NDU5NX0.CRUaz7sNOuotsV3tVM5O2KvTerAT6uTXHaTy4yKKAdM';
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 // Variables globales
 let archivosListos = { foto1: null, foto2: null, foto3: null };
 
