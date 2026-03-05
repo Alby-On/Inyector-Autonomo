@@ -70,14 +70,17 @@ async function previewAndProcess(input, imgId) {
     const file = input.files[0];
     if (!file) return;
     const preview = document.getElementById(imgId);
+    
     try {
+        // Mostrar preview inmediata
         preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
+        preview.style.display = 'block'; // El CSS se encarga del resto
+        
+        // Proceso de compresión que ya tienes...
         const compressedFile = await imageCompression(file, opcionesCompresion);
         archivosListos[input.id] = compressedFile;
-        console.log("Imagen procesada a WebP");
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error al procesar preview:", error);
     }
 }
 
