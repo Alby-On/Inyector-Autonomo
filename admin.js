@@ -131,3 +131,40 @@ function deleteProduct(index) {
 function closeModal() {
     document.getElementById("edit-modal").style.display = "none";
 }
+// Configuración de compresión
+const opcionesCompresion = {
+    maxSizeMB: 3,            // Tu límite de 3MB
+    maxWidthOrHeight: 1920,   // Resolución máxima para web
+    useWebWorker: true,
+    fileType: 'image/webp'    // Forzamos la salida a WebP
+};
+
+// Objeto para guardar los archivos ya procesados listos para Supabase
+let archivosListos = { foto1: null, foto2: null, foto3: null };
+
+async function previewAndProcess(input, imgId) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const preview = document.getElementById(imgId);
+    
+    try {
+        console.log(`Procesando ${file.name}...`);
+        
+        // 1. Mostrar vista previa inmediata (del original para feedback rápido)
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+
+        // 2. Ejecutar la compresión y conversión a WebP
+        const compressedFile = await imageCompression(file, opcionesCompresion);
+        
+        // 3. Guardar el blob resultante en nuestro objeto de envío
+        archivosListos[input.id] = compressedFile;
+        
+        console.log(`Conversión exitosa: ${compressedFile.size / 1024 / 1024} MB - Tipo: ${compressedFile.type}`);
+        
+    } catch (error) {
+        console.error("Error en la conversión:", error);
+        alert("Hubo un error al procesar la imagen. Intenta con otra.");
+    }
+}
