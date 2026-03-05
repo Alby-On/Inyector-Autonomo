@@ -57,32 +57,6 @@ function cargarSubcategorias() {
     }
 }
 
-// --- CRUD SUPABASE ---
-
-async function cargarTablaDesdeSupabase() {
-    const { data, error } = await _supabase.from('productos').select('*').order('created_at', { ascending: false });
-    if (error) return console.error("Error:", error);
-    
-    productosEnMemoria = data;
-    const body = document.getElementById("inventory-body");
-    body.innerHTML = "";
-
-    data.forEach((prod, index) => {
-        body.innerHTML += `
-            <tr>
-                <td><img src="${prod.url_imagen_1 || 'https://via.placeholder.com/50'}" class="thumb"></td>
-                <td>${prod.nombre}</td>
-                <td>${prod.categoria}</td>
-                <td>${prod.stock}</td>
-                <td>
-                    <span class="action-edit" onclick="openEditModal(${index})">Editar</span>
-                    <span class="action-delete" onclick="deleteProduct('${prod.id}')">Eliminar</span>
-                </td>
-            </tr>
-        `;
-    });
-}
-
 async function deleteProduct(id) {
     if (confirm("¿Estás seguro de que deseas eliminar este producto de Makro?")) {
         const { error } = await _supabase.from('productos').delete().eq('id', id);
@@ -195,19 +169,6 @@ async function inyectarEquipo(e) {
     }
 }
 
-// --- MODAL DE EDICIÓN ---
-function openEditModal(index) {
-    const producto = productosEnMemoria[index];
-    idProductoEditando = producto.id;
-
-    document.getElementById("edit-nombre").value = producto.nombre;
-    document.getElementById("edit-cat").value = producto.categoria;
-    document.getElementById("edit-stock").value = producto.stock;
-    document.getElementById("edit-desc").value = producto.descripcion || "";
-
-    cargarSubcategoriasEdicion(producto.subcategoria);
-    document.getElementById("edit-modal").style.display = "flex";
-}
 
 function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     const catValue = document.getElementById("edit-cat").value;
@@ -225,14 +186,5 @@ function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     }
 }
 
-function closeModal() {
-    document.getElementById("edit-modal").style.display = "none";
-}
 
-function filterTable() {
-    let input = document.getElementById("search").value.toLowerCase();
-    let rows = document.getElementById("inventory-body").getElementsByTagName("tr");
-    for (let row of rows) {
-        row.style.display = row.textContent.toLowerCase().includes(input) ? "" : "none";
-    }
-}
+
