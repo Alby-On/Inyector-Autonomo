@@ -149,7 +149,16 @@ function openEditModal(index) {
 
 function closeModal() {
     document.getElementById("edit-modal").style.display = "none";
-    idProductoEditando = null;
+    // Limpiar las previews
+    ['pre-edit-1', 'pre-edit-2', 'pre-edit-3'].forEach(id => {
+        const img = document.getElementById(id);
+        img.src = "";
+        img.style.display = "none";
+    });
+    // Limpiar los inputs de archivo
+    ['edit-foto1', 'edit-foto2', 'edit-foto3'].forEach(id => {
+        document.getElementById(id).value = "";
+    });
 }
 
 async function saveEdit() {
