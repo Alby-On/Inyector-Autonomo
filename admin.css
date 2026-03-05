@@ -224,3 +224,31 @@ th {
     width: 90%; 
     max-width: 500px; 
 }
+/* Contenedor de la miniatura */
+.preview-container {
+    width: 80px;
+    height: 80px;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    margin: 10px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background-color: #f9f9f9;
+}
+
+/* La imagen dentro de la preview */
+.edit-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Esto evita que la foto se estire feo */
+}
+
+/* Ajuste del grid para que no se amontone */
+.grid-photos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    text-align: center;
+}
