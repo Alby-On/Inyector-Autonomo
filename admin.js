@@ -1,3 +1,14 @@
+// Configuración de Supabase
+const SUPABASE_URL = 'https://afrfaeouzkjdkkqeozgq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcmZhZW91emtqZGtrcWVvemdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTg1OTUsImV4cCI6MjA4Nzc5NDU5NX0.CRUaz7sNOuotsV3tVM5O2KvTerAT6uTXHaTy4yKKAdM';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Objeto global para almacenar las imágenes procesadas (WebP)
+let archivosListos = { foto1: null, foto2: null, foto3: null };
+
+// Vincular el formulario al evento de guardado
+document.getElementById('add-form').addEventListener('submit', inyectarEquipo);
+
 /**
  * Cambia la vista activa del gestor
  * @param {string} viewId - El ID del div a mostrar
