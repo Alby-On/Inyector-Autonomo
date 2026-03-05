@@ -168,3 +168,55 @@ async function previewAndProcess(input, imgId) {
         alert("Hubo un error al procesar la imagen. Intenta con otra.");
     }
 }
+// Esta función se ejecuta al enviar el formulario
+async function inyectarEquipo(e) {
+    e.preventDefault();
+
+    const nombre = document.getElementById('nombre').value;
+    const cat = document.getElementById('cat').value;
+    const subcat = document.getElementById('subcat').value;
+    const stock = document.getElementById('stock').value;
+    const desc = document.getElementById('desc').value;
+
+    const urls = [];
+
+    // 1. Subir las imágenes procesadas al Storage
+    for (const key in archivosListos) {
+        const file = archivosListos[key];
+        if (file) {
+            const fileName = `${Date.now()}_${key}.webp`;
+            const { data, error } = await supabase.storage
+                .from('fotos-productos')
+                .upload(fileName, file);
+
+            if (!error) {
+                // Obtener URL pública
+                const { data: { publicUrl } } = supabase.storage
+                    .from('fotos-productos')
+                    .getPublicUrl(fileName);
+                urls.push(publicUrl);
+            }
+        } else {
+            urls.push(null); // Mantener el espacio si no hay foto
+        }
+    }
+
+    // 2. Guardar todo en la tabla de productos
+    const { error: insertError } = await supabase
+        .from('productos')
+        .insert([{
+            nombre: nombre,
+            categoria: cat,
+            subcategoria: subcat,
+            stock: stock,
+            descripcion: desc,
+            url_imagen_1: urls[0],
+            url_imagen_2: urls[1],
+            url_imagen_3: urls[2]
+        }]);
+
+    if (!insertError) {
+        alert("¡Equipo inyectado correctamente en Makro SPA!");
+        location.reload(); // Refrescar para limpiar
+    }
+}
