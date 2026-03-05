@@ -5,8 +5,6 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Variables globales
 let archivosListos = { foto1: null, foto2: null, foto3: null };
-let productosEnMemoria = []; // Para manejar la edición sin re-consultar
-let idProductoEditando = null;
 
 // Datos de Categorías Makro SPA
 const datosMakro = {
@@ -169,22 +167,6 @@ async function inyectarEquipo(e) {
     }
 }
 
-
-function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
-    const catValue = document.getElementById("edit-cat").value;
-    const subcatSelect = document.getElementById("edit-subcat");
-    subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
-
-    if (catValue && datosMakro[catValue]) {
-        datosMakro[catValue].forEach(sub => {
-            const option = document.createElement("option");
-            option.value = sub.replace(/\s+/g, '_').toLowerCase();
-            option.textContent = sub;
-            if (option.value === subcatPreseleccionada) option.selected = true;
-            subcatSelect.appendChild(option);
-        });
-    }
-}
 
 
 
