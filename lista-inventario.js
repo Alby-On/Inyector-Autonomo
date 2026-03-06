@@ -5,7 +5,7 @@ let idProductoEditando = null;
 // --- CARGA INICIAL Y NAVEGACIÓN ---
 async function cargarTablaDesdeSupabase() {
     const body = document.getElementById("inventory-body");
-    body.innerHTML = '<tr><td colspan="5" style="text-align:center;">Cargando inventario...</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando inventario...</td></tr>';
 
     const { data, error } = await _supabase
         .from('productos')
@@ -14,7 +14,7 @@ async function cargarTablaDesdeSupabase() {
 
     if (error) {
         console.error("Error al obtener datos:", error);
-        body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error al cargar datos</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar datos</td></tr>';
         return;
     }
     
@@ -27,17 +27,25 @@ function renderizarTabla(lista) {
     body.innerHTML = "";
 
     if (lista.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay productos registrados.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay productos registrados.</td></tr>';
         return;
     }
 
     lista.forEach((prod, index) => {
         const tr = document.createElement("tr");
+        
+        // Formatear precio a CLP
+        const precioFormateado = new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP'
+        }).format(prod.precio || 0);
+
         tr.innerHTML = `
             <td><img src="${prod.url_imagen_1 || 'https://via.placeholder.com/50'}" class="thumb"></td>
             <td>${prod.nombre}</td>
             <td>${prod.categoria}</td>
-            <td>${prod.stock}</td>
+            <td><strong>${precioFormateado}</strong></td>
+            <td>${prod.stock} unidades</td>
             <td>
                 <span class="action-edit" onclick="openEditModal(${index})">Editar</span>
                 <span class="action-delete" onclick="deleteProduct('${prod.id}')">Eliminar</span>
@@ -61,29 +69,24 @@ function filterTable() {
 async function deleteProduct(id) {
     if (!confirm("¿Estás seguro de que deseas eliminar este producto? También se borrarán sus imágenes del servidor.")) return;
 
-    // 1. Encontrar el producto en memoria para obtener las URLs de las fotos
     const producto = productosEnMemoria.find(p => p.id === id);
     
     try {
-        // 2. Crear lista de archivos a borrar del Storage
         const archivosABorrar = [];
         for (let i = 1; i <= 3; i++) {
             const url = producto[`url_imagen_${i}`];
             if (url) {
-                // Extraer el nombre del archivo de la URL
-                const nombreArchivo = url.split('/').pop();
+                const nombreArchivo = url.split('/').pop().split('?')[0];
                 archivosABorrar.push(`productos/${nombreArchivo}`);
             }
         }
 
-        // 3. Borrar archivos del Storage si existen
         if (archivosABorrar.length > 0) {
             await _supabase.storage
                 .from('fotos-productos')
                 .remove(archivosABorrar);
         }
 
-        // 4. Borrar el registro de la base de datos
         const { error } = await _supabase
             .from('productos')
             .delete()
@@ -102,29 +105,20 @@ async function deleteProduct(id) {
 
 // --- GESTIÓN DEL MODAL DE EDICIÓN ---
 
-// 1. Carga dinámica de subcategorías para el modal
 function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     const catValue = document.getElementById("edit-cat").value;
     const subcatSelect = document.getElementById("edit-subcat");
     
-    // Limpiar opciones actuales
     subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
 
     if (catValue && datosMakro[catValue]) {
         subcatSelect.disabled = false;
-
         datosMakro[catValue].forEach(sub => {
             const option = document.createElement("option");
             const val = sub.replace(/\s+/g, '_').toLowerCase();
-            
             option.value = val;
             option.textContent = sub;
-
-            // Preseleccionar si coincide con el dato de la base de datos
-            if (val === subcatPreseleccionada) {
-                option.selected = true;
-            }
-            
+            if (val === subcatPreseleccionada) option.selected = true;
             subcatSelect.appendChild(option);
         });
     } else {
@@ -134,19 +128,18 @@ function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
 
 function openEditModal(index) {
     const p = productosEnMemoria[index];
-    if (!p) return; // Seguridad
+    if (!p) return; 
     idProductoEditando = p.id;
 
-    // Rellenar textos
+    // Rellenar campos (Incluyendo el nuevo campo precio)
     document.getElementById("edit-nombre").value = p.nombre;
     document.getElementById("edit-cat").value = p.categoria;
     document.getElementById("edit-stock").value = p.stock;
+    document.getElementById("edit-precio").value = p.precio || 0; // <-- PRECIO AÑADIDO
     document.getElementById("edit-desc").value = p.descripcion || "";
 
-    // 1. Cargar subcategorías (importante)
     cargarSubcategoriasEdicion(p.subcategoria);
 
-    // 2. Mostrar las fotos actuales en las miniaturas de preview
     for (let i = 1; i <= 3; i++) {
         const imgPre = document.getElementById(`pre-edit-${i}`);
         const url = p[`url_imagen_${i}`];
@@ -158,20 +151,17 @@ function openEditModal(index) {
         }
     }
 
-    // 3. Mostrar el modal
     const modal = document.getElementById("edit-modal");
     if(modal) modal.style.display = "flex";
 }
 
 function closeModal() {
     document.getElementById("edit-modal").style.display = "none";
-    // Limpiar las previews
     ['pre-edit-1', 'pre-edit-2', 'pre-edit-3'].forEach(id => {
         const img = document.getElementById(id);
         img.src = "";
         img.style.display = "none";
     });
-    // Limpiar los inputs de archivo
     ['edit-foto1', 'edit-foto2', 'edit-foto3'].forEach(id => {
         document.getElementById(id).value = "";
     });
@@ -183,9 +173,8 @@ async function saveEdit() {
     const btn = document.querySelector('#edit-modal .btn-main');
     const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "Limpiando y Actualizando...";
+    btn.innerText = "Actualizando...";
 
-    // 1. Obtener los datos actuales del producto desde la memoria local
     const productoActual = productosEnMemoria.find(p => p.id === idProductoEditando);
 
     const datos = {
@@ -193,6 +182,7 @@ async function saveEdit() {
         categoria: document.getElementById("edit-cat").value,
         subcategoria: document.getElementById("edit-subcat").value,
         stock: parseInt(document.getElementById("edit-stock").value) || 0,
+        precio: parseInt(document.getElementById("edit-precio").value) || 0, // <-- PRECIO AÑADIDO
         descripcion: document.getElementById("edit-desc").value
     };
 
@@ -203,53 +193,32 @@ async function saveEdit() {
             const input = document.getElementById(fotoIds[i]);
             
             if (input.files && input.files[0]) {
-                // --- LÓGICA DE ELIMINACIÓN SEGURA ---
                 const urlVieja = productoActual[`url_imagen_${i+1}`];
                 if (urlVieja) {
                     try {
-                        // Extraemos el nombre limpio ignorando posibles parámetros de URL (?t=...)
                         const nombreLimpio = urlVieja.split('productos/').pop().split('?')[0];
-                        const pathViejo = `productos/${nombreLimpio}`;
-
                         await _supabase.storage
                             .from('fotos-productos')
-                            .remove([pathViejo]);
-                        
-                        console.log(`Archivo antiguo eliminado: ${pathViejo}`);
-                    } catch (e) {
-                        console.warn("No se pudo borrar el archivo anterior, procediendo con la subida...");
-                    }
+                            .remove([`productos/${nombreLimpio}`]);
+                    } catch (e) { console.warn("Archivo anterior no encontrado."); }
                 }
 
-                // --- LÓGICA DE SUBIDA (WebP) ---
                 const archivo = input.files[0];
-                const opciones = { 
-                    maxSizeMB: 1, 
-                    maxWidthOrHeight: 1920, 
-                    useWebWorker: true, 
-                    fileType: 'image/webp' 
-                };
-                
+                const opciones = { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true, fileType: 'image/webp' };
                 const compressedFile = await imageCompression(archivo, opciones);
                 
-                // Usamos un nombre que incluya el ID y la marca de tiempo para evitar conflictos
                 const nuevoPath = `productos/${idProductoEditando}_img${i+1}_${Date.now()}.webp`;
-                
                 const { error: uploadError } = await _supabase.storage
                     .from('fotos-productos')
                     .upload(nuevoPath, compressedFile);
 
                 if (uploadError) throw uploadError;
 
-                const { data: publicData } = _supabase.storage
-                    .from('fotos-productos')
-                    .getPublicUrl(nuevoPath);
-                
+                const { data: publicData } = _supabase.storage.from('fotos-productos').getPublicUrl(nuevoPath);
                 datos[`url_imagen_${i+1}`] = publicData.publicUrl;
             }
         }
 
-        // 3. Actualizar tabla en la base de datos
         const { error: updateError } = await _supabase
             .from('productos')
             .update(datos)
@@ -257,27 +226,24 @@ async function saveEdit() {
 
         if (updateError) throw updateError;
 
-        alert("¡Producto actualizado y Storage optimizado!");
-        
-        // Limpiar el input de archivos del modal para la próxima edición
-        fotoIds.forEach(id => document.getElementById(id).value = "");
-        
+        alert("¡Producto actualizado exitosamente!");
         closeModal();
         cargarTablaDesdeSupabase();
 
     } catch (err) {
-        console.error("Error completo:", err);
-        alert("Error al actualizar: " + err.message);
+        console.error("Error al actualizar:", err);
+        alert("Error: " + err.message);
     } finally {
         btn.disabled = false;
         btn.innerText = originalText;
     }
 }
+
 function previewEdit(input, imgId) {
     const preview = document.getElementById(imgId);
     if (input.files && input.files[0]) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (e) => {
             preview.src = e.target.result;
             preview.style.display = 'block';
         }
