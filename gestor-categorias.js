@@ -36,34 +36,44 @@ async function cargarCategoriasActuales() {
     const container = document.getElementById('categories-list-container');
     if (!container) return;
 
-    container.innerHTML = "<p style='text-align:center;'>Cargando catálogo desde la nube...</p>";
+    container.innerHTML = "<p style='text-align:center;'>🔍 Conectando con Supabase...</p>";
 
     try {
-        // 1. Aseguramos tener los datos frescos de la BD
+        // 1. Forzar sincronización del objeto global
         await sincronizarCatalogoDesdeBD();
 
-        // 2. Consultar conteo de productos para validar eliminación
-        const { data: productos, error } = await _supabase
-            .from('productos')
-            .select('categoria');
+        // 2. Verificar si datosEnergy tiene algo
+        const keys = Object.keys(datosEnergy);
+        console.log("Categorías encontradas:", keys.length);
 
-        if (error) throw error;
+        if (keys.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:20px; border:1px dashed #ccc; border-radius:10px;">
+                    <p>No hay categorías en la base de datos.</p>
+                    <button class="btn-main" onclick="openCreateCategoryModal()" style="width:auto; padding:8px 15px;">
+                        Crear mi primera categoría
+                    </button>
+                </div>`;
+            return;
+        }
+
+        // 3. Traer conteo de productos
+        const { data: productos, error: errProd } = await _supabase.from('productos').select('categoria');
+        if (errProd) throw errProd;
 
         const conteo = {};
-        productos.forEach(p => {
-            conteo[p.categoria] = (conteo[p.categoria] || 0) + 1;
-        });
+        productos.forEach(p => { conteo[p.categoria] = (conteo[p.categoria] || 0) + 1; });
 
-        container.innerHTML = ""; 
+        container.innerHTML = ""; // Limpiar para renderizar
 
-        // 3. Dibujar tarjetas basadas en datosEnergy (que ahora viene de la BD)
-        Object.keys(datosEnergy).forEach(catKey => {
+        // 4. Renderizar
+        keys.forEach(catKey => {
             const numProductos = conteo[catKey] || 0;
             const subcategorias = datosEnergy[catKey];
 
             const card = document.createElement('div');
             card.className = "card";
-            card.style.cssText = "margin-bottom:15px; padding:20px; border-left:5px solid var(--primary); background:#fff; box-shadow: var(--shadow);";
+            card.style.cssText = "margin-bottom:15px; padding:20px; border-left:5px solid var(--primary); background:#fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);";
 
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -76,17 +86,16 @@ async function cargarCategoriasActuales() {
                         </div>
                     </div>
                     <div style="display:flex; gap:10px;">
-                        <button class="action-edit" onclick="openEditCategoryModal('${catKey}')" style="background:none; border:none; color:var(--primary); font-weight:600; cursor:pointer;">✏️ Editar</button>
-                        <button class="${numProductos > 0 ? '' : 'action-delete'}" 
-                                style="background:none; border:none; color:${numProductos > 0 ? '#cbd5e1' : 'var(--danger)'}; font-weight:600; cursor:${numProductos > 0 ? 'not-allowed' : 'pointer'};"
-                                ${numProductos > 0 ? 'disabled title="En uso"' : `onclick="eliminarCategoria('${catKey}')"`}>
+                        <button onclick="openEditCategoryModal('${catKey}')" style="background:none; border:none; color:var(--primary); font-weight:600; cursor:pointer;">✏️ Editar</button>
+                        <button style="background:none; border:none; color:${numProductos > 0 ? '#cbd5e1' : 'var(--danger)'}; font-weight:600; cursor:pointer;" 
+                                onclick="${numProductos === 0 ? `eliminarCategoria('${catKey}')` : "alert('No puedes eliminar una categoría con productos')"}">
                             🗑️ Eliminar
                         </button>
                     </div>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
                     ${subcategorias.map(sub => `
-                        <span style="background:var(--light); color:#475569; padding:4px 12px; border-radius:15px; font-size:0.8rem; border:1px solid var(--border);">
+                        <span style="background:#f1f5f9; color:#475569; padding:4px 12px; border-radius:15px; font-size:0.8rem; border:1px solid #e2e8f0;">
                             ${sub}
                         </span>
                     `).join('')}
@@ -94,12 +103,16 @@ async function cargarCategoriasActuales() {
             `;
             container.appendChild(card);
         });
+
     } catch (err) {
-        console.error(err);
-        container.innerHTML = "<p style='color:red;'>Error al conectar con la base de datos.</p>";
+        console.error("Error completo:", err);
+        container.innerHTML = `
+            <div style="color:red; text-align:center; padding:20px;">
+                <strong>❌ Error de conexión:</strong><br>
+                ${err.message || "No se pudo conectar con Supabase"}
+            </div>`;
     }
 }
-
 // =========================================
 // LÓGICA DEL MODAL (CREAR / EDITAR)
 // =========================================
