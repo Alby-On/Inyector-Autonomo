@@ -213,37 +213,45 @@
 </div>
 <div id="settings-view" class="view">
     <div class="card">
-        <h2>⚙ Gestión de Catálogo y Categorías</h2>
-        
-        <div class="grid">
-            <div class="form-group" style="border-right: 1px solid var(--border); padding-right: 15px;">
-                <label>Categoría Principal (Añadir o Renombrar)</label>
-                <input type="hidden" id="editing-cat-key"> 
-                
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="input-category" placeholder="Nombre categoría">
-                    <button type="button" class="btn-main" id="btn-save-cat" style="width:auto; padding:10px;" onclick="saveCategory()">Añadir</button>
-                    <button type="button" id="btn-cancel-cat" style="display:none; background:#ccc; border:none; border-radius:8px; padding:0 10px;" onclick="cancelarEdicionCat()">✖</button>
-                </div>
-                <small id="edit-indicator" style="color:var(--primary); display:none; font-weight:bold;">✍ Editando categoría...</small>
-            </div>
-
-            <div class="form-group">
-                <label>Añadir Subcategoría</label>
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    <select id="select-cat-manager"></select>
-                    <div style="display:flex; gap:5px;">
-                        <input type="text" id="input-subcategory" placeholder="Nueva subcategoría">
-                        <button type="button" class="btn-main" style="width:auto; padding:10px;" onclick="saveSubCategory()">Añadir Sub</button>
-                    </div>
-                </div>
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2>⚙ Gestión de Catálogo y Categorías</h2>
+            <button class="btn-main" style="width:auto; padding:10px 25px;" onclick="openCreateCategoryModal()">
+                ✚ Nueva Categoría
+            </button>
         </div>
+        <p><small>Haz clic en <b>Editar</b> para modificar el nombre o gestionar subcategorías.</small></p>
+        <div id="categories-list-container">
+            </div>
+    </div>
+</div>
 
-        <hr style="margin: 25px 0; border: 0; border-top: 1px solid var(--border);">
-        
-        <h3>Estructura del Catálogo (Click en ✏️ para editar nombres)</h3>
-        <div id="categories-list-container"></div>
+<div id="category-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 id="modal-category-title">Gestionar Categoría</h3>
+            <span class="close-modal" onclick="closeCategoryModal()">&times;</span>
+        </div>
+        <form id="category-form">
+            <div class="form-group">
+                <label>Nombre de la Categoría</label>
+                <input type="text" id="modal-input-cat-name" placeholder="Ej: Energía Solar" required>
+                <input type="hidden" id="modal-editing-key">
+            </div>
+            <div class="form-group">
+                <label>Subcategorías</label>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="modal-input-sub-name" placeholder="Ej: Baterías">
+                    <button type="button" class="btn-main" style="width:auto; padding:0 15px;" onclick="addSubToModalList()">Añadir</button>
+                </div>
+                <div id="modal-sub-list" style="background:#f8fafc; padding:10px; border-radius:8px; min-height:50px; display:flex; flex-wrap:wrap; gap:8px;">
+                </div>
+                <small id="sub-min-warning" style="color:var(--danger); display:none; font-weight:bold;">* Mínimo 1 subcategoría necesaria.</small>
+            </div>
+            <div class="modal-footer" style="margin-top:20px;">
+                <button type="button" class="btn-main" id="btn-process-cat" onclick="processCategorySave()">Guardar Cambios</button>
+                <button type="button" class="btn-secondary" onclick="closeCategoryModal()">Cancelar</button>
+            </div>
+        </form>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
