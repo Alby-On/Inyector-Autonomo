@@ -217,3 +217,37 @@ function showView(viewId, btn) {
         }
     }
 }
+function openEditCategoryModal(key) {
+    console.log("Intentando editar categoría:", key); // Debug para ver si el botón responde
+    
+    const modal = document.getElementById('category-modal');
+    const title = document.getElementById('modal-category-title');
+    const inputName = document.getElementById('modal-input-cat-name');
+    const inputKey = document.getElementById('modal-editing-key');
+
+    if (!modal) return console.error("No se encontró el modal con ID 'category-modal'");
+
+    // 1. Cambiamos el título y guardamos la 'key' técnica
+    title.innerText = "✏️ Editar Categoría";
+    inputKey.value = key;
+    
+    // 2. Ponemos el nombre en el input (ej: 'elec_domiciliaria' -> 'ELEC DOMICILIARIA')
+    inputName.value = key.replace(/_/g, ' ').toUpperCase();
+    
+    // 3. Cambiamos el texto del botón de guardado
+    document.getElementById('btn-process-cat').innerText = "Guardar Cambios";
+
+    // 4. Cargamos las subcategorías actuales al array temporal
+    // OJO: Verifica si tu variable es 'datosEnergy' o 'datosMakro'
+    if (typeof datosEnergy !== 'undefined' && datosEnergy[key]) {
+        subcatsTemporales = [...datosEnergy[key]];
+    } else {
+        subcatsTemporales = [];
+    }
+
+    // 5. Dibujamos las etiquetas de las subcategorías en el modal
+    renderSubListInModal();
+
+    // 6. MOSTRAMOS EL MODAL
+    modal.style.display = "flex";
+}
