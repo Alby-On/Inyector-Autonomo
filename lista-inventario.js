@@ -31,10 +31,9 @@ function renderizarTabla(lista) {
         return;
     }
 
-    lista.forEach((prod, index) => {
+    lista.forEach((prod) => {
         const tr = document.createElement("tr");
         
-        // Formatear precio a CLP
         const precioFormateado = new Intl.NumberFormat('es-CL', {
             style: 'currency',
             currency: 'CLP'
@@ -47,12 +46,41 @@ function renderizarTabla(lista) {
             <td><strong>${precioFormateado}</strong></td>
             <td>${prod.stock} unidades</td>
             <td>
-                <span class="action-edit" onclick="openEditModal(${index})">Editar</span>
+                <span class="action-edit" onclick="prepararEdicion('${prod.id}')">Editar</span>
                 <span class="action-delete" onclick="deleteProduct('${prod.id}')">Eliminar</span>
             </td>
         `;
         body.appendChild(tr);
     });
+}
+
+// --- NUEVA FUNCIÓN DE APOYO PARA EDICIÓN ---
+function prepararEdicion(id) {
+    // Buscamos el producto exacto por su ID en el arreglo de memoria
+    const p = productosEnMemoria.find(item => item.id === id);
+    if (!p) return; 
+
+    idProductoEditando = p.id;
+
+    // Rellenar campos
+    document.getElementById("edit-nombre").value = p.nombre;
+    document.getElementById("edit-cat").value = p.categoria;
+    document.getElementById("edit-stock").value = p.stock;
+    document.getElementById("edit-precio").value = p.precio || 0;
+    document.getElementById("edit-desc").value = p.descripcion || "";
+
+    // Sincronizado con datosEnergy (el nombre que usas ahora)
+    cargarSubcategoriasEdicion(p.subcategoria);
+
+    for (let i = 1; i <= 3; i++) {
+        const imgPre = document.getElementById(`pre-edit-${i}`);
+        const url = p[`url_imagen_${i}`];
+        imgPre.src = url || "";
+        imgPre.style.display = url ? "block" : "none";
+    }
+
+    const modal = document.getElementById("edit-modal");
+    if(modal) modal.style.display = "flex";
 }
 
 // --- FILTRADO ---
@@ -67,7 +95,7 @@ function filterTable() {
 
 // --- ELIMINACIÓN ---
 async function deleteProduct(id) {
-    if (!confirm("¿Estás seguro de que deseas eliminar este producto? También se borrarán sus imágenes del servidor.")) return;
+    if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
 
     const producto = productosEnMemoria.find(p => p.id === id);
     
@@ -82,38 +110,31 @@ async function deleteProduct(id) {
         }
 
         if (archivosABorrar.length > 0) {
-            await _supabase.storage
-                .from('fotos-productos')
-                .remove(archivosABorrar);
+            await _supabase.storage.from('fotos-productos').remove(archivosABorrar);
         }
 
-        const { error } = await _supabase
-            .from('productos')
-            .delete()
-            .eq('id', id);
-
+        const { error } = await _supabase.from('productos').delete().eq('id', id);
         if (error) throw error;
 
-        alert("Producto e imágenes eliminados correctamente.");
+        alert("Producto eliminado correctamente.");
         cargarTablaDesdeSupabase();
-
     } catch (err) {
-        console.error("Error al eliminar:", err);
-        alert("Hubo un error al eliminar: " + err.message);
+        console.error(err);
+        alert("Error al eliminar: " + err.message);
     }
 }
 
-// --- GESTIÓN DEL MODAL DE EDICIÓN ---
-
+// --- CATEGORÍAS EN EDICIÓN ---
 function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     const catValue = document.getElementById("edit-cat").value;
     const subcatSelect = document.getElementById("edit-subcat");
     
     subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
 
-    if (catValue && datosMakro[catValue]) {
+    // CAMBIO: Ahora verifica datosEnergy (que es tu variable actual)
+    if (catValue && typeof datosEnergy !== 'undefined' && datosEnergy[catValue]) {
         subcatSelect.disabled = false;
-        datosMakro[catValue].forEach(sub => {
+        datosEnergy[catValue].forEach(sub => {
             const option = document.createElement("option");
             const val = sub.replace(/\s+/g, '_').toLowerCase();
             option.value = val;
@@ -124,35 +145,6 @@ function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     } else {
         subcatSelect.disabled = true;
     }
-}
-
-function openEditModal(index) {
-    const p = productosEnMemoria[index];
-    if (!p) return; 
-    idProductoEditando = p.id;
-
-    // Rellenar campos (Incluyendo el nuevo campo precio)
-    document.getElementById("edit-nombre").value = p.nombre;
-    document.getElementById("edit-cat").value = p.categoria;
-    document.getElementById("edit-stock").value = p.stock;
-    document.getElementById("edit-precio").value = p.precio || 0; // <-- PRECIO AÑADIDO
-    document.getElementById("edit-desc").value = p.descripcion || "";
-
-    cargarSubcategoriasEdicion(p.subcategoria);
-
-    for (let i = 1; i <= 3; i++) {
-        const imgPre = document.getElementById(`pre-edit-${i}`);
-        const url = p[`url_imagen_${i}`];
-        if (url) {
-            imgPre.src = url;
-            imgPre.style.display = "block";
-        } else {
-            imgPre.style.display = "none";
-        }
-    }
-
-    const modal = document.getElementById("edit-modal");
-    if(modal) modal.style.display = "flex";
 }
 
 function closeModal() {
