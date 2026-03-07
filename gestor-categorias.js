@@ -43,62 +43,55 @@ async function cargarCategoriasActuales() {
     const container = document.getElementById('categories-list-container');
     if (!container) return;
 
-    container.innerHTML = "<p style='text-align:center;'>⏳ Consultando Supabase...</p>";
+    container.innerHTML = "<p style='text-align:center;'>⏳ Sincronizando catálogo...</p>";
 
     try {
-        // Validación de seguridad
-        if (typeof _supabase === 'undefined') {
-            container.innerHTML = "<p style='color:red;'>Error: '_supabase' no está definido.</p>";
-            return;
-        }
-
-        // Consulta directa sin intermediarios
-        const response = await _supabase
+        // Usamos la instancia global window._supabase
+        const { data, error } = await window._supabase
             .from('configuracion_catalogo')
             .select('*');
-
-        console.log("Respuesta completa de Supabase:", response);
-
-        // Si la respuesta es undefined o nula
-        if (!response) {
-            container.innerHTML = "<p style='color:orange;'>La base de datos devolvió 'undefined'. Revisa las Keys.</p>";
-            return;
-        }
-
-        const { data, error } = response;
 
         if (error) throw error;
 
         if (!data || data.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding:20px; border:2px dashed #ddd;">
-                    <p>No hay datos en la tabla 'configuracion_catalogo'.</p>
-                    <button class="btn-main" onclick="openCreateCategoryModal()" style="width:auto;">Crear Primera Categoría</button>
+                <div style="text-align:center; padding:20px; border:1px dashed #ccc;">
+                    <p>No hay categorías registradas.</p>
+                    <button class="btn-main" onclick="openCreateCategoryModal()" style="width:auto;">✚ Crear Nueva</button>
                 </div>`;
             return;
         }
 
-        // Renderizado directo
-        let html = "";
+        // Limpiar contenedor antes de renderizar
+        container.innerHTML = "";
+
         data.forEach(item => {
-            html += `
-                <div class="card" style="margin-bottom:15px; padding:15px; border-left:5px solid var(--primary);">
-                    <div style="display:flex; justify-content:space-between;">
-                        <strong>📂 ${item.nombre_visible}</strong>
-                        <button onclick="openEditCategoryModal('${item.categoria}')" style="color:var(--primary); background:none; border:none; cursor:pointer;">Editar</button>
-                    </div>
-                    <div style="margin-top:10px;">
-                        ${item.subcategorias.map(s => `<span style="background:#eee; padding:2px 8px; border-radius:10px; font-size:12px; margin-right:5px;">${s}</span>`).join('')}
-                    </div>
+            const card = document.createElement('div');
+            card.className = "card";
+            card.style.cssText = "margin-bottom:15px; padding:20px; border-left:5px solid #059669; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);";
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>📂 ${item.nombre_visible || item.categoria}</strong>
+                    <button onclick="openEditCategoryModal('${item.categoria}')" 
+                            style="color:#059669; background:none; border:none; cursor:pointer; font-weight:bold;">
+                        Editar
+                    </button>
+                </div>
+                <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
+                    ${item.subcategorias.map(s => `
+                        <span style="background:#f1f5f9; padding:2px 10px; border-radius:12px; font-size:12px; border:1px solid #e2e8f0;">
+                            ${s}
+                        </span>
+                    `).join('')}
                 </div>
             `;
+            container.appendChild(card);
         });
-        
-        container.innerHTML = html;
 
     } catch (err) {
-        console.error("Error capturado:", err);
-        container.innerHTML = `<p style='color:red;'>Error crítico: ${err.message}</p>`;
+        console.error("Error crítico en gestor:", err);
+        container.innerHTML = `<p style='color:red; text-align:center;'>Error de comunicación: ${err.message}</p>`;
     }
 }
 
