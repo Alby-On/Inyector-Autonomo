@@ -174,3 +174,46 @@ async function eliminarCategoria(key) {
     if (typeof actualizarTodosLosSelects === 'function') actualizarTodosLosSelects();
     cargarCategoriasActuales();
 }
+/**
+ * Controla el cambio de pestañas (vistas) en la aplicación
+ * @param {string} viewId - El ID del div que se quiere mostrar
+ * @param {HTMLElement} btn - El botón que recibió el clic para activarlo
+ */
+function showView(viewId, btn) {
+    // 1. Ocultar todas las secciones que tengan la clase 'view'
+    document.querySelectorAll('.view').forEach(v => {
+        v.classList.remove('active');
+    });
+
+    // 2. Quitar la clase 'active' de todos los botones de navegación
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('active');
+    });
+
+    // 3. Mostrar la sección seleccionada
+    const targetView = document.getElementById(viewId);
+    if (targetView) {
+        targetView.classList.add('active');
+    }
+
+    // 4. Marcar el botón actual como activo
+    if (btn) {
+        btn.classList.add('active');
+    }
+
+    // --- LÓGICA DE CARGA AUTOMÁTICA ---
+    
+    // Si entra a la lista de inventario, refresca la tabla desde Supabase
+    if (viewId === 'list-view') {
+        if (typeof cargarTablaDesdeSupabase === 'function') {
+            cargarTablaDesdeSupabase();
+        }
+    }
+
+    // Si entra a categorías, refresca el catálogo
+    if (viewId === 'settings-view') {
+        if (typeof cargarCategoriasActuales === 'function') {
+            cargarCategoriasActuales();
+        }
+    }
+}
