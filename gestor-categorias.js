@@ -2,19 +2,47 @@
 // VARIABLES DE ESTADO LOCAL
 // =========================================
 let subcatsTemporales = [];
+let datosEnergy = {}; // Ahora se llena desde Supabase
+
+/**
+ * SINCRONIZAR CATÁLOGO DESDE SUPABASE
+ * Carga los datos de la tabla configuracion_catalogo al objeto global
+ */
+async function sincronizarCatalogoDesdeBD() {
+    try {
+        const { data, error } = await _supabase
+            .from('configuracion_catalogo')
+            .select('*');
+
+        if (error) throw error;
+
+        // Transformamos el array de la BD al formato de objeto { key: [subs] }
+        const nuevoCatalogo = {};
+        data.forEach(item => {
+            nuevoCatalogo[item.categoria] = item.subcategorias;
+        });
+
+        datosEnergy = nuevoCatalogo;
+        console.log("Catálogo sincronizado desde Supabase");
+    } catch (err) {
+        console.error("Error al sincronizar catálogo:", err);
+    }
+}
 
 /**
  * RENDERIZAR LISTA PRINCIPAL EN SETTINGS
- * Trae categorías de datosEnergy y conteos de Supabase
  */
 async function cargarCategoriasActuales() {
     const container = document.getElementById('categories-list-container');
     if (!container) return;
 
-    container.innerHTML = "<p style='text-align:center;'>Cargando catálogo...</p>";
+    container.innerHTML = "<p style='text-align:center;'>Cargando catálogo desde la nube...</p>";
 
     try {
-        // Consultar conteo de productos en Supabase
+        // 1. Aseguramos tener los datos frescos de la BD
+        await sincronizarCatalogoDesdeBD();
+
+        // 2. Consultar conteo de productos para validar eliminación
         const { data: productos, error } = await _supabase
             .from('productos')
             .select('categoria');
@@ -28,6 +56,7 @@ async function cargarCategoriasActuales() {
 
         container.innerHTML = ""; 
 
+        // 3. Dibujar tarjetas basadas en datosEnergy (que ahora viene de la BD)
         Object.keys(datosEnergy).forEach(catKey => {
             const numProductos = conteo[catKey] || 0;
             const subcategorias = datosEnergy[catKey];
@@ -84,6 +113,17 @@ function openCreateCategoryModal() {
     document.getElementById('category-modal').style.display = "flex";
 }
 
+function openEditCategoryModal(key) {
+    const modal = document.getElementById('category-modal');
+    document.getElementById('modal-category-title').innerText = "✏️ Editar Categoría";
+    document.getElementById('modal-editing-key').value = key;
+    document.getElementById('modal-input-cat-name').value = key.replace(/_/g, ' ').toUpperCase();
+    
+    subcatsTemporales = [...(datosEnergy[key] || [])];
+    renderSubListInModal();
+    modal.style.display = "flex";
+}
+
 function closeCategoryModal() {
     document.getElementById('category-modal').style.display = "none";
     document.getElementById('sub-min-warning').style.display = "none";
@@ -118,14 +158,19 @@ function renderSubListInModal() {
 }
 
 // =========================================
-// GUARDADO E INYECCIÓN
+// GUARDADO E INYECCIÓN (CONEXIÓN BD)
 // =========================================
 
 async function processCategorySave() {
     const nameInput = document.getElementById('modal-input-cat-name');
     const editingKey = document.getElementById('modal-editing-key').value;
     const nuevoNombre = nameInput.value.trim();
-    const nuevaKey = nuevoNombre.toLowerCase().replace(/\s+/g, '_');
+    
+    // Normalizar key: "Energía Solar" -> "energia_solar"
+    const nuevaKey = nuevoNombre.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/\s+/g, '_')
+                    .replace(/[^a-z0-9_]/g, '');
 
     if (subcatsTemporales.length === 0) {
         document.getElementById('sub-min-warning').style.display = "block";
@@ -134,31 +179,46 @@ async function processCategorySave() {
 
     const btn = document.getElementById('btn-process-cat');
     btn.disabled = true;
-    btn.innerText = "Procesando...";
+    btn.innerText = "Sincronizando...";
 
     try {
-        // Si estamos editando y el nombre cambió, actualizamos en cascada en Supabase
-        if (editingKey && editingKey !== nuevaKey) {
+        if (editingKey) {
+            // 1. Si el nombre cambió, actualizar productos en cascada
+            if (editingKey !== nuevaKey) {
+                await _supabase.from('productos').update({ categoria: nuevaKey }).eq('categoria', editingKey);
+                await _supabase.from('configuracion_catalogo').delete().eq('categoria', editingKey);
+            }
+            
+            // 2. Upsert en tabla de configuración
             const { error } = await _supabase
-                .from('productos')
-                .update({ categoria: nuevaKey })
-                .eq('categoria', editingKey);
+                .from('configuracion_catalogo')
+                .upsert({ 
+                    categoria: nuevaKey, 
+                    nombre_visible: nuevoNombre, 
+                    subcategorias: subcatsTemporales 
+                }, { onConflict: 'categoria' });
+            
             if (error) throw error;
-            delete datosEnergy[editingKey];
+        } else {
+            // INSERTAR NUEVA
+            const { error } = await _supabase
+                .from('configuracion_catalogo')
+                .insert([{ 
+                    categoria: nuevaKey, 
+                    nombre_visible: nuevoNombre, 
+                    subcategorias: subcatsTemporales 
+                }]);
+            if (error) throw error;
         }
 
-        // Actualizar el objeto global y persistir
-        datosEnergy[nuevaKey] = subcatsTemporales;
-        localStorage.setItem('config_energy_v2', JSON.stringify(datosEnergy));
-
-        // Refrescar UI
+        await cargarCategoriasActuales(); // Esto sincroniza datosEnergy y refresca UI
         if (typeof actualizarTodosLosSelects === 'function') actualizarTodosLosSelects();
-        cargarCategoriasActuales();
+        
         closeCategoryModal();
-        alert("Catálogo actualizado con éxito.");
+        alert("¡Base de datos actualizada!");
 
     } catch (err) {
-        alert("Error al guardar: " + err.message);
+        alert("Error: " + err.message);
     } finally {
         btn.disabled = false;
         btn.innerText = "Guardar Cambios";
@@ -168,86 +228,37 @@ async function processCategorySave() {
 async function eliminarCategoria(key) {
     if (!confirm(`¿Estás seguro de eliminar la categoría "${key}"?`)) return;
     
-    delete datosEnergy[key];
-    localStorage.setItem('config_energy_v2', JSON.stringify(datosEnergy));
-    
-    if (typeof actualizarTodosLosSelects === 'function') actualizarTodosLosSelects();
-    cargarCategoriasActuales();
+    try {
+        const { error } = await _supabase
+            .from('configuracion_catalogo')
+            .delete()
+            .eq('categoria', key);
+            
+        if (error) throw error;
+
+        await cargarCategoriasActuales();
+        if (typeof actualizarTodosLosSelects === 'function') actualizarTodosLosSelects();
+    } catch (err) {
+        alert("Error al eliminar: " + err.message);
+    }
 }
+
 /**
- * Controla el cambio de pestañas (vistas) en la aplicación
- * @param {string} viewId - El ID del div que se quiere mostrar
- * @param {HTMLElement} btn - El botón que recibió el clic para activarlo
+ * NAVEGACIÓN
  */
 function showView(viewId, btn) {
-    // 1. Ocultar todas las secciones que tengan la clase 'view'
-    document.querySelectorAll('.view').forEach(v => {
-        v.classList.remove('active');
-    });
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-    // 2. Quitar la clase 'active' de todos los botones de navegación
-    document.querySelectorAll('.nav-btn').forEach(b => {
-        b.classList.remove('active');
-    });
-
-    // 3. Mostrar la sección seleccionada
     const targetView = document.getElementById(viewId);
-    if (targetView) {
-        targetView.classList.add('active');
-    }
+    if (targetView) targetView.classList.add('active');
+    if (btn) btn.classList.add('active');
 
-    // 4. Marcar el botón actual como activo
-    if (btn) {
-        btn.classList.add('active');
-    }
-
-    // --- LÓGICA DE CARGA AUTOMÁTICA ---
-    
-    // Si entra a la lista de inventario, refresca la tabla desde Supabase
     if (viewId === 'list-view') {
-        if (typeof cargarTablaDesdeSupabase === 'function') {
-            cargarTablaDesdeSupabase();
-        }
+        if (typeof cargarTablaDesdeSupabase === 'function') cargarTablaDesdeSupabase();
     }
 
-    // Si entra a categorías, refresca el catálogo
     if (viewId === 'settings-view') {
-        if (typeof cargarCategoriasActuales === 'function') {
-            cargarCategoriasActuales();
-        }
+        cargarCategoriasActuales();
     }
-}
-function openEditCategoryModal(key) {
-    console.log("Intentando editar categoría:", key); // Debug para ver si el botón responde
-    
-    const modal = document.getElementById('category-modal');
-    const title = document.getElementById('modal-category-title');
-    const inputName = document.getElementById('modal-input-cat-name');
-    const inputKey = document.getElementById('modal-editing-key');
-
-    if (!modal) return console.error("No se encontró el modal con ID 'category-modal'");
-
-    // 1. Cambiamos el título y guardamos la 'key' técnica
-    title.innerText = "✏️ Editar Categoría";
-    inputKey.value = key;
-    
-    // 2. Ponemos el nombre en el input (ej: 'elec_domiciliaria' -> 'ELEC DOMICILIARIA')
-    inputName.value = key.replace(/_/g, ' ').toUpperCase();
-    
-    // 3. Cambiamos el texto del botón de guardado
-    document.getElementById('btn-process-cat').innerText = "Guardar Cambios";
-
-    // 4. Cargamos las subcategorías actuales al array temporal
-    // OJO: Verifica si tu variable es 'datosEnergy' o 'datosMakro'
-    if (typeof datosEnergy !== 'undefined' && datosEnergy[key]) {
-        subcatsTemporales = [...datosEnergy[key]];
-    } else {
-        subcatsTemporales = [];
-    }
-
-    // 5. Dibujamos las etiquetas de las subcategorías en el modal
-    renderSubListInModal();
-
-    // 6. MOSTRAMOS EL MODAL
-    modal.style.display = "flex";
 }
