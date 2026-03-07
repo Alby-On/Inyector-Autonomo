@@ -211,7 +211,21 @@
         </form>
     </div>
 </div>
-
+<div id="settings-view" class="view">
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2>⚙ Gestión de Catálogo y Categorías</h2>
+            <button class="btn-main" style="width:auto; padding:10px 25px;" onclick="openCreateCategoryModal()">
+                ✚ Nueva Categoría
+            </button>
+        </div>
+        <p><small>Haz clic en <b>Editar</b> para gestionar el catálogo en <b>Supabase</b>.</small></p>
+        
+        <div id="categories-list-container" style="margin-top: 20px;">
+            <p style="text-align:center; padding:40px; color:#64748b;">Cargando catálogo dinámico...</p>
+        </div>
+    </div>
+</div>
 <div id="category-modal" class="modal">
     <div class="modal-content" style="max-width: 650px; border-radius: 15px;">
         <div class="modal-header">
@@ -259,6 +273,7 @@
         </form>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 <script src="supabase-client.js"></script> 
