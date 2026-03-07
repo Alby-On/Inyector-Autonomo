@@ -1,8 +1,8 @@
 // Variables globales
 let archivosListos = { foto1: null, foto2: null, foto3: null };
 
-// Datos de Categorías Makro SPA
-const datosMakro = {
+// Datos de Categorías Energy Comercial
+const datosEnergy = {
     "elec_domiciliaria": ["Conductores", "Canalización PVC", "Artefactos", "Protecciones", "Cajas y Accesorios"],
     "elec_industrial": ["Tableros y Gabinetes", "Control de Motores", "Maniobra y Relés", "Comandos y Señalética", "Canalización Galvanizada"],
     "herramientas": ["Herramientas Eléctricas Total", "Herramientas de Mano", "Instrumentos de Medición"],
@@ -36,9 +36,9 @@ function cargarSubcategorias() {
 
     subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
 
-    if (seleccion && datosMakro[seleccion]) {
+    if (seleccion && datosEnergy[seleccion]) {
         subcatSelect.disabled = false; 
-        datosMakro[seleccion].forEach(sub => {
+        datosEnergy[seleccion].forEach(sub => {
             const option = document.createElement("option");
             option.value = sub.replace(/\s+/g, '_').toLowerCase();
             option.textContent = sub;
@@ -131,7 +131,7 @@ async function inyectarEquipo(e) {
         if (insertError) throw insertError;
 
         // 4. Éxito y Limpieza
-        alert("¡Producto inyectado con éxito en Makro SPA!");
+        alert("¡Producto inyectado con éxito en Energy Comercial SPA!");
         
         e.target.reset();
         document.querySelectorAll('.thumb-preview').forEach(img => {
