@@ -220,6 +220,7 @@
             </button>
         </div>
         <p><small>Haz clic en <b>Editar</b> para modificar el nombre o gestionar subcategorías.</small></p>
+        
         <div id="categories-list-container">
             </div>
     </div>
@@ -231,22 +232,29 @@
             <h3 id="modal-category-title">Gestionar Categoría</h3>
             <span class="close-modal" onclick="closeCategoryModal()">&times;</span>
         </div>
+        
         <form id="category-form">
+            <input type="hidden" id="modal-editing-key">
+
             <div class="form-group">
                 <label>Nombre de la Categoría</label>
                 <input type="text" id="modal-input-cat-name" placeholder="Ej: Energía Solar" required>
-                <input type="hidden" id="modal-editing-key">
             </div>
+
             <div class="form-group">
                 <label>Subcategorías</label>
                 <div style="display:flex; gap:10px; margin-bottom:10px;">
                     <input type="text" id="modal-input-sub-name" placeholder="Ej: Baterías">
                     <button type="button" class="btn-main" style="width:auto; padding:0 15px;" onclick="addSubToModalList()">Añadir</button>
                 </div>
-                <div id="modal-sub-list" style="background:#f8fafc; padding:10px; border-radius:8px; min-height:50px; display:flex; flex-wrap:wrap; gap:8px;">
-                </div>
-                <small id="sub-min-warning" style="color:var(--danger); display:none; font-weight:bold;">* Mínimo 1 subcategoría necesaria.</small>
+                
+                <div id="modal-sub-list" style="background:#f8fafc; padding:10px; border-radius:8px; min-height:50px; display:flex; flex-wrap:wrap; gap:8px; border: 1px solid var(--border);">
+                    </div>
+                <small id="sub-min-warning" style="color:var(--danger); display:none; font-weight:bold; margin-top:5px;">
+                    * Mínimo 1 subcategoría necesaria para guardar.
+                </small>
             </div>
+
             <div class="modal-footer" style="margin-top:20px;">
                 <button type="button" class="btn-main" id="btn-process-cat" onclick="processCategorySave()">Guardar Cambios</button>
                 <button type="button" class="btn-secondary" onclick="closeCategoryModal()">Cancelar</button>
