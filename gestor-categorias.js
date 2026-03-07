@@ -4,18 +4,13 @@ let subcatsTemporales = [];
 console.log("🛠️ Gestor de Categorías cargado y listo.");
 
 /**
- * FUNCIÓN DE NAVEGACIÓN (SOBREESCRIBE CUALQUIER OTRA)
+ * FUNCIÓN DE NAVEGACIÓN
  */
 window.showView = function(viewId, btn) {
     console.log("🚀 Cambiando a vista:", viewId);
-    
-    // 1. Ocultar todas las vistas
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    
-    // 2. Desactivar todos los botones
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-    // 3. Mostrar la vista solicitada
     const target = document.getElementById(viewId);
     if (target) {
         target.classList.add('active');
@@ -24,10 +19,8 @@ window.showView = function(viewId, btn) {
         return;
     }
 
-    // 4. Activar botón
     if (btn) btn.classList.add('active');
 
-    // 5. LÓGICA DE CARGA AUTOMÁTICA
     if (viewId === 'settings-view') {
         console.log("📂 Cargando categorías...");
         cargarCategoriasActuales();
@@ -35,21 +28,17 @@ window.showView = function(viewId, btn) {
 };
 
 /**
- * RENDERIZADO DE CATEGORÍAS
+ * RENDERIZADO DE CATEGORÍAS CON BOTÓN ELIMINAR
  */
 async function cargarCategoriasActuales() {
     const container = document.getElementById('categories-list-container');
-    if (!container) return console.error("❌ No existe 'categories-list-container'");
+    if (!container) return;
 
     container.innerHTML = "<p style='text-align:center;'>⏳ Conectando con Supabase...</p>";
 
     try {
-        // Usamos la instancia global que creamos en supabase-client.js
         const client = window._supabase || _supabase;
-        
-        if (!client) {
-            throw new Error("El cliente de Supabase no se encontró en window._supabase");
-        }
+        if (!client) throw new Error("Cliente Supabase no encontrado");
 
         const { data, error } = await client
             .from('configuracion_catalogo')
@@ -68,7 +57,7 @@ async function cargarCategoriasActuales() {
             return;
         }
 
-        container.innerHTML = ""; // Limpiar
+        container.innerHTML = ""; 
 
         data.forEach(item => {
             const card = document.createElement('div');
@@ -78,10 +67,16 @@ async function cargarCategoriasActuales() {
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong style="font-size:1.1rem;">📂 ${item.nombre_visible || item.categoria}</strong>
-                    <button onclick="openEditCategoryModal('${item.categoria}')" 
-                            style="color:#059669; background:none; border:none; cursor:pointer; font-weight:bold;">
-                        Editar
-                    </button>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="openEditCategoryModal('${item.categoria}')" 
+                                style="color:#059669; background:none; border:none; cursor:pointer; font-weight:bold;">
+                            ✏️ Editar
+                        </button>
+                        <button onclick="deleteCategory('${item.categoria}')" 
+                                style="color:#e11d48; background:none; border:none; cursor:pointer; font-weight:bold;">
+                            🗑️ Borrar
+                        </button>
+                    </div>
                 </div>
                 <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
                     ${item.subcategorias.map(s => `
@@ -100,12 +95,113 @@ async function cargarCategoriasActuales() {
     }
 }
 
-// Vinculación de modales para que el HTML los encuentre
+/**
+ * LÓGICA DE GUARDADO (CREAR / EDITAR)
+ */
+window.processCategorySave = async function() {
+    const catName = document.getElementById('modal-input-cat-name').value.trim();
+    const editingKey = document.getElementById('modal-editing-key').value;
+    const warning = document.getElementById('sub-min-warning');
+
+    // REGLA: Subcategoría obligatoria
+    if (subcatsTemporales.length === 0) {
+        warning.style.display = "block";
+        return;
+    }
+    warning.style.display = "none";
+    if (!catName) return alert("El nombre es obligatorio");
+
+    // Generar key técnica (slug)
+    const catKey = editingKey || catName.toLowerCase()
+        .replace(/\s+/g, '_')
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const payload = {
+        categoria: catKey,
+        nombre_visible: catName,
+        subcategorias: subcatsTemporales
+    };
+
+    try {
+        const client = window._supabase || _supabase;
+        let error;
+
+        if (editingKey) {
+            const res = await client.from('configuracion_catalogo').update(payload).eq('categoria', editingKey);
+            error = res.error;
+        } else {
+            const res = await client.from('configuracion_catalogo').insert([payload]);
+            error = res.error;
+        }
+
+        if (error) throw error;
+
+        alert("✅ Catálogo actualizado");
+        closeCategoryModal();
+        cargarCategoriasActuales();
+    } catch (err) {
+        alert("❌ Error al guardar: " + err.message);
+    }
+};
+
+/**
+ * LÓGICA DE ELIMINACIÓN CON REGLA DE NEGOCIO
+ */
+window.deleteCategory = async function(catKey) {
+    if (!confirm(`¿Estás seguro de eliminar la categoría '${catKey}'?`)) return;
+
+    try {
+        const client = window._supabase || _supabase;
+        
+        // REGLA: Verificar si existen productos asociados
+        const { count, error: countError } = await client
+            .from('productos')
+            .select('*', { count: 'exact', head: true })
+            .eq('categoria', catKey);
+
+        if (countError) throw countError;
+
+        if (count > 0) {
+            alert(`⚠️ No se puede borrar: Existen ${count} productos usando esta categoría.`);
+            return;
+        }
+
+        const { error: delError } = await client
+            .from('configuracion_catalogo')
+            .delete()
+            .eq('categoria', catKey);
+
+        if (delError) throw delError;
+
+        alert("🗑️ Categoría eliminada");
+        cargarCategoriasActuales();
+    } catch (err) {
+        alert("❌ Error: " + err.message);
+    }
+};
+
+/**
+ * GESTIÓN DE MODALES Y SUB-LISTAS
+ */
 window.openCreateCategoryModal = function() {
     document.getElementById('modal-category-title').innerText = "✚ Nueva Categoría";
     document.getElementById('modal-editing-key').value = "";
     document.getElementById('modal-input-cat-name').value = "";
     subcatsTemporales = [];
+    renderSubListInModal();
+    document.getElementById('category-modal').style.display = "flex";
+};
+
+window.openEditCategoryModal = async function(catKey) {
+    const client = window._supabase || _supabase;
+    const { data, error } = await client.from('configuracion_catalogo').select('*').eq('categoria', catKey).single();
+
+    if (error) return alert("Error al cargar datos");
+
+    document.getElementById('modal-category-title').innerText = "✏️ Editar Categoría";
+    document.getElementById('modal-editing-key').value = data.categoria;
+    document.getElementById('modal-input-cat-name').value = data.nombre_visible;
+    subcatsTemporales = [...data.subcategorias];
     renderSubListInModal();
     document.getElementById('category-modal').style.display = "flex";
 };
@@ -132,6 +228,7 @@ window.addSubToModalList = function() {
         subcatsTemporales.push(input.value.trim());
         input.value = "";
         renderSubListInModal();
+        document.getElementById('sub-min-warning').style.display = "none";
     }
 };
 
