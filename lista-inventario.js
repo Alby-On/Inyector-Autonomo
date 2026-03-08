@@ -1,22 +1,33 @@
 // --- VARIABLES DE ESTADO ---
 let productosEnMemoria = []; 
 let idProductoEditando = null;
-let catalogoConfig = {}; // Aquí guardaremos las categorías de la BD
+let catalogoConfig = {}; 
 
 /**
  * CARGA INICIAL Y NAVEGACIÓN
  */
 async function cargarTablaDesdeSupabase() {
+    console.log("🔍 Iniciando carga de inventario...");
     const body = document.getElementById("inventory-body");
-    if (!body) return;
+    if (!body) return console.error("❌ No se encontró el elemento 'inventory-body'");
 
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando inventario...</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;">⏳ Conectando con la base de datos...</td></tr>';
 
     try {
-        const client = window._supabase || _supabase;
+        const client = window._supabase || (typeof _supabase !== 'undefined' ? _supabase : null);
         
-        // 1. REGLA: Primero cargamos la configuración de categorías para tener los nombres reales
-        const { data: confData } = await client.from('configuracion_catalogo').select('*');
+        if (!client) {
+            console.error("❌ El cliente de Supabase no está inicializado.");
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error: Cliente no inicializado</td></tr>';
+            return;
+        }
+
+        // 1. Cargamos configuración de categorías
+        console.log("📂 Descargando configuración de categorías...");
+        const { data: confData, error: confError } = await client.from('configuracion_catalogo').select('*');
+        
+        if (confError) throw confError;
+
         catalogoConfig = {};
         if (confData) {
             confData.forEach(c => {
@@ -25,9 +36,11 @@ async function cargarTablaDesdeSupabase() {
                     subs: c.subcategorias
                 };
             });
+            console.log("✅ Categorías procesadas:", Object.keys(catalogoConfig).length);
         }
 
         // 2. Cargamos los productos
+        console.log("📦 Descargando lista de productos...");
         const { data, error } = await client
             .from('productos')
             .select('*')
@@ -35,21 +48,24 @@ async function cargarTablaDesdeSupabase() {
 
         if (error) throw error;
         
-        productosEnMemoria = data;
-        renderizarTabla(data);
+        console.log("✅ Productos recibidos:", data ? data.length : 0);
+        
+        productosEnMemoria = data || [];
+        renderizarTabla(productosEnMemoria);
 
     } catch (error) {
-        console.error("Error al obtener datos:", error);
-        body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al conectar con Supabase</td></tr>';
+        console.error("❌ Error crítico en cargarTablaDesdeSupabase:", error);
+        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Error: ${error.message}</td></tr>`;
     }
 }
 
 function renderizarTabla(lista) {
     const body = document.getElementById("inventory-body");
+    if (!body) return;
     body.innerHTML = "";
 
-    if (lista.length === 0) {
-        body.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay productos registrados.</td></tr>';
+    if (!lista || lista.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;">📭 No hay productos registrados.</td></tr>';
         return;
     }
 
@@ -61,18 +77,17 @@ function renderizarTabla(lista) {
             currency: 'CLP'
         }).format(prod.precio || 0);
 
-        // Traducimos el slug de categoría al nombre visible
         const nombreCategoria = catalogoConfig[prod.categoria] ? catalogoConfig[prod.categoria].nombre : prod.categoria;
 
         tr.innerHTML = `
-            <td><img src="${prod.url_imagen_1 || 'https://via.placeholder.com/50'}" class="thumb"></td>
+            <td><img src="${prod.url_imagen_1 || 'https://via.placeholder.com/50'}" class="thumb" onerror="this.src='https://via.placeholder.com/50'"></td>
             <td>${prod.nombre}</td>
-            <td><span class="badge-cat">${nombreCategoria}</span></td>
+            <td><span class="badge-cat" style="background:#e2e8f0; padding:2px 8px; border-radius:4px; font-size:0.8em;">${nombreCategoria}</span></td>
             <td><strong>${precioFormateado}</strong></td>
             <td>${prod.stock} unidades</td>
             <td>
-                <span class="action-edit" onclick="prepararEdicion('${prod.id}')">✏️ Editar</span>
-                <span class="action-delete" onclick="deleteProduct('${prod.id}')">🗑️ Eliminar</span>
+                <button class="nav-btn" style="padding:5px 10px; font-size:0.8em;" onclick="prepararEdicion('${prod.id}')">✏️ Editar</button>
+                <button class="nav-btn" style="padding:5px 10px; font-size:0.8em; background:#fee2e2; color:#b91c1c;" onclick="deleteProduct('${prod.id}')">🗑️ Borrar</button>
             </td>
         `;
         body.appendChild(tr);
