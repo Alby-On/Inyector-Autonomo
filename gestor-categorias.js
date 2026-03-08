@@ -8,9 +8,12 @@ console.log("🛠️ Gestor de Categorías cargado y listo.");
  */
 window.showView = function(viewId, btn) {
     console.log("🚀 Cambiando a vista:", viewId);
+    
+    // 1. Ocultar todas las vistas y desactivar botones
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
+    // 2. Mostrar la vista solicitada
     const target = document.getElementById(viewId);
     if (target) {
         target.classList.add('active');
@@ -19,11 +22,26 @@ window.showView = function(viewId, btn) {
         return;
     }
 
+    // 3. Activar botón
     if (btn) btn.classList.add('active');
 
+    // --- EL CAMBIO CLAVE AQUÍ ---
+    // Si la vista es inventario, DISPARA la carga de productos
+    if (viewId === 'list-view') {
+        console.log("📋 Disparando carga de tabla de inventario...");
+        if (typeof cargarTablaDesdeSupabase === 'function') {
+            cargarTablaDesdeSupabase();
+        } else {
+            console.error("❌ Error: La función 'cargarTablaDesdeSupabase' no existe.");
+        }
+    }
+
+    // Si la vista es categorías, dispara su carga
     if (viewId === 'settings-view') {
         console.log("📂 Cargando categorías...");
-        cargarCategoriasActuales();
+        if (typeof cargarCategoriasActuales === 'function') {
+            cargarCategoriasActuales();
+        }
     }
 };
 
