@@ -1,7 +1,7 @@
 // --- VARIABLES DE ESTADO ---
 let productosEnMemoria = []; 
 let idProductoEditando = null;
-let categoriasCatalogo = {}; // Almacenará el catálogo dinámico para el modal de edición
+let catalogoConfig = {}; // Aquí guardaremos las categorías de la BD
 
 /**
  * CARGA INICIAL Y NAVEGACIÓN
@@ -15,10 +15,19 @@ async function cargarTablaDesdeSupabase() {
     try {
         const client = window._supabase || _supabase;
         
-        // 1. Sincronizamos las categorías para el modal de edición antes de renderizar
-        await sincronizarCategoriasParaEdicion();
+        // 1. REGLA: Primero cargamos la configuración de categorías para tener los nombres reales
+        const { data: confData } = await client.from('configuracion_catalogo').select('*');
+        catalogoConfig = {};
+        if (confData) {
+            confData.forEach(c => {
+                catalogoConfig[c.categoria] = {
+                    nombre: c.nombre_visible,
+                    subs: c.subcategorias
+                };
+            });
+        }
 
-        // 2. Traemos los productos
+        // 2. Cargamos los productos
         const { data, error } = await client
             .from('productos')
             .select('*')
@@ -28,39 +37,10 @@ async function cargarTablaDesdeSupabase() {
         
         productosEnMemoria = data;
         renderizarTabla(data);
+
     } catch (error) {
         console.error("Error al obtener datos:", error);
-        body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar datos</td></tr>';
-    }
-}
-
-/**
- * Trae las categorías actuales de Supabase para que el modal de edición 
- * tenga los selects actualizados.
- */
-async function sincronizarCategoriasParaEdicion() {
-    try {
-        const client = window._supabase || _supabase;
-        const { data, error } = await client
-            .from('configuracion_catalogo')
-            .select('*');
-
-        if (error) throw error;
-
-        categoriasCatalogo = {};
-        const editCatSelect = document.getElementById("edit-cat");
-        if (editCatSelect) {
-            editCatSelect.innerHTML = '<option value="">Seleccione Categoría</option>';
-            data.forEach(item => {
-                categoriasCatalogo[item.categoria] = item.subcategorias;
-                const opt = document.createElement("option");
-                opt.value = item.categoria;
-                opt.textContent = item.nombre_visible;
-                editCatSelect.appendChild(opt);
-            });
-        }
-    } catch (err) {
-        console.warn("No se pudieron sincronizar categorías para edición:", err);
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al conectar con Supabase</td></tr>';
     }
 }
 
@@ -81,10 +61,13 @@ function renderizarTabla(lista) {
             currency: 'CLP'
         }).format(prod.precio || 0);
 
+        // Traducimos el slug de categoría al nombre visible
+        const nombreCategoria = catalogoConfig[prod.categoria] ? catalogoConfig[prod.categoria].nombre : prod.categoria;
+
         tr.innerHTML = `
             <td><img src="${prod.url_imagen_1 || 'https://via.placeholder.com/50'}" class="thumb"></td>
             <td>${prod.nombre}</td>
-            <td>${prod.categoria.replace(/_/g, ' ').toUpperCase()}</td>
+            <td><span class="badge-cat">${nombreCategoria}</span></td>
             <td><strong>${precioFormateado}</strong></td>
             <td>${prod.stock} unidades</td>
             <td>
@@ -96,23 +79,35 @@ function renderizarTabla(lista) {
     });
 }
 
-function prepararEdicion(id) {
+// --- FUNCIÓN PARA RELLENAR EL MODAL DE EDICIÓN ---
+async function prepararEdicion(id) {
     const p = productosEnMemoria.find(item => item.id === id);
     if (!p) return; 
 
     idProductoEditando = p.id;
 
-    // Rellenar campos básicos
+    // Rellenar selects de categorías en el modal antes de setear valores
+    const editCatSelect = document.getElementById("edit-cat");
+    editCatSelect.innerHTML = '<option value="">Seleccione Categoría</option>';
+    
+    Object.keys(catalogoConfig).forEach(key => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = catalogoConfig[key].nombre;
+        editCatSelect.appendChild(opt);
+    });
+
+    // Seteamos valores actuales
     document.getElementById("edit-nombre").value = p.nombre;
     document.getElementById("edit-cat").value = p.categoria;
     document.getElementById("edit-stock").value = p.stock;
     document.getElementById("edit-precio").value = p.precio || 0;
     document.getElementById("edit-desc").value = p.descripcion || "";
 
-    // Cargar subcategorías basadas en la categoría del producto
+    // Cargar subcategorías basadas en la selección
     cargarSubcategoriasEdicion(p.subcategoria);
 
-    // Fotografías
+    // Fotos
     for (let i = 1; i <= 3; i++) {
         const imgPre = document.getElementById(`pre-edit-${i}`);
         const url = p[`url_imagen_${i}`];
@@ -130,11 +125,11 @@ function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     
     subcatSelect.innerHTML = '<option value="">Seleccione Sub-Categoría</option>';
 
-    if (catValue && categoriasCatalogo[catValue]) {
+    if (catValue && catalogoConfig[catValue]) {
         subcatSelect.disabled = false;
-        categoriasCatalogo[catValue].forEach(sub => {
+        catalogoConfig[catValue].subs.forEach(sub => {
             const option = document.createElement("option");
-            option.value = sub; // Usamos el nombre directo
+            option.value = sub; 
             option.textContent = sub;
             if (sub === subcatPreseleccionada) option.selected = true;
             subcatSelect.appendChild(option);
@@ -144,8 +139,9 @@ function cargarSubcategoriasEdicion(subcatPreseleccionada = "") {
     }
 }
 
+// --- ELIMINACIÓN ---
 async function deleteProduct(id) {
-    if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
+    if (!confirm("¿Deseas eliminar este producto permanentemente?")) return;
     const client = window._supabase || _supabase;
     const producto = productosEnMemoria.find(p => p.id === id);
     
@@ -153,7 +149,7 @@ async function deleteProduct(id) {
         const archivosABorrar = [];
         for (let i = 1; i <= 3; i++) {
             const url = producto[`url_imagen_${i}`];
-            if (url) {
+            if (url && url.includes('fotos-productos')) {
                 const nombreArchivo = url.split('/').pop().split('?')[0];
                 archivosABorrar.push(`productos/${nombreArchivo}`);
             }
@@ -166,14 +162,14 @@ async function deleteProduct(id) {
         const { error } = await client.from('productos').delete().eq('id', id);
         if (error) throw error;
 
-        alert("Producto eliminado correctamente.");
+        alert("🗑️ Producto eliminado.");
         cargarTablaDesdeSupabase();
     } catch (err) {
-        console.error(err);
         alert("Error al eliminar: " + err.message);
     }
 }
 
+// --- ACTUALIZACIÓN (UPDATE) ---
 async function saveEdit() {
     if (!idProductoEditando) return;
     const client = window._supabase || _supabase;
@@ -181,7 +177,7 @@ async function saveEdit() {
     const btn = document.querySelector('#edit-modal .btn-main');
     const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "Actualizando...";
+    btn.innerText = "Sincronizando...";
 
     const productoActual = productosEnMemoria.find(p => p.id === idProductoEditando);
 
@@ -195,38 +191,33 @@ async function saveEdit() {
     };
 
     try {
-        const fotoIds = ['edit-foto1', 'edit-foto2', 'edit-foto3'];
-        
-        for (let i = 0; i < fotoIds.length; i++) {
-            const input = document.getElementById(fotoIds[i]);
+        // Manejo de fotos nuevas si existen
+        for (let i = 1; i <= 3; i++) {
+            const input = document.getElementById(`edit-foto${i}`);
             if (input.files && input.files[0]) {
-                const urlVieja = productoActual[`url_imagen_${i+1}`];
+                // Borrar vieja
+                const urlVieja = productoActual[`url_imagen_${i}`];
                 if (urlVieja) {
-                    const nombreLimpio = urlVieja.split('productos/').pop().split('?')[0];
+                    const nombreLimpio = urlVieja.split('/').pop().split('?')[0];
                     await client.storage.from('fotos-productos').remove([`productos/${nombreLimpio}`]);
                 }
-
-                const archivo = input.files[0];
-                const opciones = { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true, fileType: 'image/webp' };
-                const compressedFile = await imageCompression(archivo, opciones);
-                
-                const nuevoPath = `productos/${idProductoEditando}_img${i+1}_${Date.now()}.webp`;
-                await client.storage.from('fotos-productos').upload(nuevoPath, compressedFile);
-
-                const { data: publicData } = client.storage.from('fotos-productos').getPublicUrl(nuevoPath);
-                datos[`url_imagen_${i+1}`] = publicData.publicUrl;
+                // Subir nueva
+                const options = { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true, fileType: 'image/webp' };
+                const compressed = await imageCompression(input.files[0], options);
+                const path = `productos/${idProductoEditando}_${i}_${Date.now()}.webp`;
+                await client.storage.from('fotos-productos').upload(path, compressed);
+                const { data: pub } = client.storage.from('fotos-productos').getPublicUrl(path);
+                datos[`url_imagen_${i}`] = pub.publicUrl;
             }
         }
 
         const { error } = await client.from('productos').update(datos).eq('id', idProductoEditando);
         if (error) throw error;
 
-        alert("¡Producto actualizado exitosamente!");
+        alert("✅ Producto actualizado.");
         closeModal();
         cargarTablaDesdeSupabase();
-
     } catch (err) {
-        console.error("Error al actualizar:", err);
         alert("Error: " + err.message);
     } finally {
         btn.disabled = false;
@@ -234,17 +225,20 @@ async function saveEdit() {
     }
 }
 
+// --- UTILIDADES ---
 function filterTable() {
     const input = document.getElementById("search").value.toLowerCase();
     const resultados = productosEnMemoria.filter(p => 
         p.nombre.toLowerCase().includes(input) || 
-        p.categoria.toLowerCase().includes(input)
+        p.categoria.toLowerCase().includes(input) ||
+        p.subcategoria.toLowerCase().includes(input)
     );
     renderizarTabla(resultados);
 }
 
 function closeModal() {
-    document.getElementById("edit-modal").style.display = "none";
+    const modal = document.getElementById("edit-modal");
+    if (modal) modal.style.display = "none";
 }
 
 function previewEdit(input, imgId) {
